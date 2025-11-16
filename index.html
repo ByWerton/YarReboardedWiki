@@ -5,97 +5,91 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>YarReboarded Wiki</title>
 <style>
-  body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0;}
-  header { background:#222; color:white; padding:1rem; text-align:center;}
-  nav { width:200px; background:#333; color:white; position:fixed; top:0; left:0; height:100%; padding-top:2rem;}
-  nav a { display:block; color:white; text-decoration:none; padding:0.5rem 1rem;}
-  nav a:hover { background:#444;}
-  main { margin-left:200px; padding:1rem;}
-  .block, .map, .kargo { background:white; padding:1rem; margin-bottom:1rem; border-radius:5px;}
-  .admin-panel { background:#eee; padding:1rem; border-radius:5px; margin-bottom:1rem;}
-  input, textarea, button { padding:0.5rem; margin:0.2rem 0; width:100%;}
+  body { margin:0; font-family: Arial, sans-serif; background:#f0f0f0; }
+  #menu { width:200px; background:#222; color:#fff; height:100vh; position:fixed; top:0; left:0; display:flex; flex-direction:column; }
+  #menu button { background:#333; color:#fff; border:none; padding:15px; margin:5px; cursor:pointer; }
+  #content { margin-left:210px; padding:20px; }
+  .adminOnly { display:none; }
+  .block, .kargo, .mapBlock, .comment { background:#fff; margin:10px 0; padding:10px; border-radius:5px; }
+  .block img, .kargo img, .mapBlock img { max-width:150px; max-height:150px; display:block; margin-top:10px; }
+  input, textarea { width:100%; padding:5px; margin:5px 0; }
 </style>
 </head>
 <body>
 
-<header>
-  <h1>YarReboarded Wiki</h1>
-</header>
+<div id="menu">
+  <button onclick="showPage('anasayfa')">Ana Sayfa</button>
+  <button onclick="showPage('kargolar')">Kargolar</button>
+  <button onclick="showPage('mapler')">Mapler</button>
+  <button onclick="showPage('blocklar')">Blocklar</button>
+  <button onclick="showPage('yorumlar')">Yorumlar</button>
+  <button onclick="showPage('admin')">Admin Paneli</button>
+  <button onclick="logout()">Çıkış Yap</button>
+</div>
 
-<nav>
-  <a href="#" id="anasayfaLink">Anasayfa</a>
-  <a href="#" id="kargolarLink">Kargolar</a>
-  <a href="#" id="mapLink">Map</a>
-  <a href="#" id="blockLink">Blocklar</a>
-  <a href="#" id="yorumLink">Yorumlar</a>
-  <a href="#" id="adminLink">Admin Panel</a>
-</nav>
-
-<main id="content">
-  <div id="loginDiv">
-    <h2>Admin Giriş</h2>
-    <input type="email" id="email" placeholder="Email">
-    <input type="password" id="password" placeholder="Şifre">
-    <button id="loginBtn">Giriş Yap</button>
+<div id="content">
+  <div id="anasayfa">
+    <h1>Ana Sayfa</h1>
+    <p>Wikiye hoşgeldiniz!</p>
   </div>
 
-  <div id="anasayfaDiv" style="display:none;">
-    <h2>Ana Sayfa</h2>
-    <p>Wiki’ye hoşgeldiniz!</p>
-  </div>
-
-  <div id="kargolarDiv" style="display:none;">
+  <div id="kargolar" style="display:none">
     <h2>Kargolar</h2>
-    <div id="kargolarContainer"></div>
-    <div class="admin-panel" id="kargoAdmin" style="display:none;">
-      <h3>Kargo Ekle/Düzenle</h3>
+    <div id="kargoList"></div>
+    <div class="adminOnly">
+      <h3>Kargo Ekle</h3>
       <input type="text" id="kargoAd" placeholder="Kargo Adı">
-      <input type="text" id="kargoCan" placeholder="Kargo Canı">
-      <input type="text" id="kargoAciklama" placeholder="Kargo Açıklama">
-      <input type="text" id="kargoResim" placeholder="Kargo Resim URL">
-      <button id="kargoEkleBtn">Kaydet</button>
+      <input type="number" id="kargoCan" placeholder="Kargo Canı">
+      <input type="number" id="kargoHasar" placeholder="Kargo Hasarı">
+      <textarea id="kargoAciklama" placeholder="Açıklama"></textarea>
+      <input type="file" id="kargoResim">
+      <button onclick="addKargo()">Ekle</button>
     </div>
   </div>
 
-  <div id="mapDiv" style="display:none;">
-    <h2>Map</h2>
-    <div id="mapContainer"></div>
-    <div class="admin-panel" id="mapAdmin" style="display:none;">
-      <h3>Map Ekle/Düzenle</h3>
-      <input type="text" id="mapAciklama" placeholder="Map Açıklama">
-      <input type="text" id="mapResim" placeholder="Map Resim URL">
-      <button id="mapEkleBtn">Kaydet</button>
+  <div id="mapler" style="display:none">
+    <h2>Mapler</h2>
+    <div id="mapList"></div>
+    <div class="adminOnly">
+      <h3>Map Ekle</h3>
+      <input type="text" id="mapAd" placeholder="Map Adı">
+      <textarea id="mapAciklama" placeholder="Açıklama"></textarea>
+      <input type="file" id="mapResim">
+      <button onclick="addMap()">Ekle</button>
     </div>
   </div>
 
-  <div id="blockDiv" style="display:none;">
+  <div id="blocklar" style="display:none">
     <h2>Blocklar</h2>
-    <div id="blockContainer"></div>
-    <div class="admin-panel" id="blockAdmin" style="display:none;">
-      <h3>Block Ekle/Düzenle</h3>
+    <div id="blockList"></div>
+    <div class="adminOnly">
+      <h3>Block Ekle</h3>
       <input type="text" id="blockAd" placeholder="Block Adı">
-      <input type="text" id="blockAciklama" placeholder="Block Açıklama">
-      <input type="text" id="blockResim" placeholder="Block Resim URL">
-      <button id="blockEkleBtn">Kaydet</button>
+      <input type="number" id="blockCan" placeholder="Block Canı">
+      <input type="number" id="blockHasar" placeholder="Block Hasarı">
+      <textarea id="blockAciklama" placeholder="Açıklama"></textarea>
+      <input type="file" id="blockResim">
+      <button onclick="addBlock()">Ekle</button>
     </div>
   </div>
 
-  <div id="yorumDiv" style="display:none;">
+  <div id="yorumlar" style="display:none">
     <h2>Yorumlar</h2>
-    <div id="yorumContainer"></div>
-    <div class="admin-panel" id="yorumAdmin" style="display:none;">
-      <h3>Yorum Ekle</h3>
-      <input type="text" id="yorumYazar" placeholder="Yazar">
-      <textarea id="yorumMetin" placeholder="Yorum Metni"></textarea>
-      <button id="yorumEkleBtn">Kaydet</button>
-    </div>
+    <div id="yorumList"></div>
+    <textarea id="yorumInput" placeholder="Yorum yaz..."></textarea>
+    <button onclick="addComment()">Gönder</button>
   </div>
 
-</main>
+  <div id="admin" style="display:none">
+    <h2>Admin Paneli</h2>
+    <p>Admin olarak tüm içerikleri düzenleyebilir veya silebilirsiniz.</p>
+  </div>
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-import { getDatabase, ref, set, push, onValue } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+import { getDatabase, ref, push, onValue, remove, set } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 
 // Firebase config
 const firebaseConfig = {
@@ -111,142 +105,139 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const auth = getAuth(app);
 
-// Admin email kontrolü
 const adminEmail = "selimhanlafci121@gmail.com";
 
-// Elemanlar
-const loginDiv = document.getElementById("loginDiv");
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
-const loginBtn = document.getElementById("loginBtn");
-
-const anasayfaDiv = document.getElementById("anasayfaDiv");
-const kargolarDiv = document.getElementById("kargolarDiv");
-const mapDiv = document.getElementById("mapDiv");
-const blockDiv = document.getElementById("blockDiv");
-const yorumDiv = document.getElementById("yorumDiv");
-
-const kargolarContainer = document.getElementById("kargolarContainer");
-const mapContainer = document.getElementById("mapContainer");
-const blockContainer = document.getElementById("blockContainer");
-const yorumContainer = document.getElementById("yorumContainer");
-
-// Navbar
-document.getElementById("anasayfaLink").onclick = ()=>showDiv(anasayfaDiv);
-document.getElementById("kargolarLink").onclick = ()=>showDiv(kargolarDiv);
-document.getElementById("mapLink").onclick = ()=>showDiv(mapDiv);
-document.getElementById("blockLink").onclick = ()=>showDiv(blockDiv);
-document.getElementById("yorumLink").onclick = ()=>showDiv(yorumDiv);
-document.getElementById("adminLink").onclick = ()=>alert("Admin panel en altta mevcut.");
-
-// Login
-loginBtn.onclick = ()=>{
-  if(emailInput.value === adminEmail){
-    loginDiv.style.display="none";
-    showDiv(anasayfaDiv);
-    // admin panelleri göster
-    document.getElementById("kargoAdmin").style.display="block";
-    document.getElementById("mapAdmin").style.display="block";
-    document.getElementById("blockAdmin").style.display="block";
-    document.getElementById("yorumAdmin").style.display="block";
-  } else {
-    alert("Yalnızca admin girişi!");
-  }
-};
-
-// Show div
-function showDiv(div){
-  [anasayfaDiv,kargolarDiv,mapDiv,blockDiv,yorumDiv].forEach(d=>d.style.display="none");
-  div.style.display="block";
+// Page switch
+function showPage(id) {
+  document.querySelectorAll("#content > div").forEach(d => d.style.display = "none");
+  document.getElementById(id).style.display = "block";
 }
 
-// Firebase veri ekleme ve gösterme
+// Logout
+function logout() { signOut(auth); }
 
-// Kargolar
-const kargoAd = document.getElementById("kargoAd");
-const kargoCan = document.getElementById("kargoCan");
-const kargoAciklama = document.getElementById("kargoAciklama");
-const kargoResim = document.getElementById("kargoResim");
-document.getElementById("kargoEkleBtn").onclick = ()=>{
-  const refK = ref(db, "kargolar/"+Date.now());
-  set(refK,{
-    ad:kargoAd.value,
-    can:kargoCan.value,
-    aciklama:kargoAciklama.value,
-    resim:kargoResim.value
-  });
-};
+// Admin kontrol
+let isAdmin = false;
 
-// Göster
-onValue(ref(db,"kargolar"),snapshot=>{
-  kargolarContainer.innerHTML="";
-  snapshot.forEach(s=>{
-    const d = s.val();
+// Auth state
+onAuthStateChanged(auth, user => {
+  if (user) {
+    isAdmin = user.email === adminEmail;
+    document.querySelectorAll(".adminOnly").forEach(el => el.style.display = isAdmin ? "block" : "none");
+  } else {
+    window.location.href = "#"; // giriş sayfası (bunu index.html içine yapabilirsin)
+  }
+});
+
+// ------------------ Kargolar ------------------
+const kargoRef = ref(db, "kargolar");
+onValue(kargoRef, snapshot => {
+  const kargoList = document.getElementById("kargoList");
+  kargoList.innerHTML = "";
+  snapshot.forEach(child => {
+    const k = child.val();
     const div = document.createElement("div");
-    div.className="kargo";
-    div.innerHTML=`<h4>${d.ad}</h4><p>Can: ${d.can}</p><p>${d.aciklama}</p><img src="${d.resim}" width="100%">`;
-    kargolarContainer.appendChild(div);
+    div.className = "kargo";
+    div.innerHTML = `<strong>${k.ad}</strong> Can: ${k.can} Hasar: ${k.hasar} <br> ${k.aciklama} <br>${k.resim? `<img src="${k.resim}">`:''} ${isAdmin? `<button onclick="deleteKargo('${child.key}')">Sil</button>`:''}`;
+    kargoList.appendChild(div);
   });
 });
 
-// Map
-document.getElementById("mapEkleBtn").onclick = ()=>{
-  const refM = ref(db, "maps/"+Date.now());
-  set(refM,{
-    aciklama: document.getElementById("mapAciklama").value,
-    resim: document.getElementById("mapResim").value
-  });
+window.addKargo = function() {
+  const ad = document.getElementById("kargoAd").value;
+  const can = document.getElementById("kargoCan").value;
+  const hasar = document.getElementById("kargoHasar").value;
+  const aciklama = document.getElementById("kargoAciklama").value;
+  const resimInput = document.getElementById("kargoResim");
+  let resimUrl = "";
+  if(resimInput.files.length) {
+    resimUrl = URL.createObjectURL(resimInput.files[0]);
+  }
+  push(kargoRef, {ad, can, hasar, aciklama, resim:resimUrl});
 };
-onValue(ref(db,"maps"),snapshot=>{
-  mapContainer.innerHTML="";
-  snapshot.forEach(s=>{
-    const d = s.val();
+
+window.deleteKargo = function(key) { remove(ref(db, "kargolar/"+key)); };
+
+// ------------------ Mapler ------------------
+const mapRef = ref(db, "mapler");
+onValue(mapRef, snapshot => {
+  const mapList = document.getElementById("mapList");
+  mapList.innerHTML = "";
+  snapshot.forEach(child => {
+    const m = child.val();
     const div = document.createElement("div");
-    div.className="map";
-    div.innerHTML=`<p>${d.aciklama}</p><img src="${d.resim}" width="100%">`;
-    mapContainer.appendChild(div);
+    div.className = "mapBlock";
+    div.innerHTML = `<strong>${m.ad}</strong><br>${m.aciklama}<br>${m.resim? `<img src="${m.resim}">`:''} ${isAdmin? `<button onclick="deleteMap('${child.key}')">Sil</button>`:''}`;
+    mapList.appendChild(div);
   });
 });
 
-// Blocklar
-document.getElementById("blockEkleBtn").onclick = ()=>{
-  const refB = ref(db, "blocks/"+Date.now());
-  set(refB,{
-    ad: document.getElementById("blockAd").value,
-    aciklama: document.getElementById("blockAciklama").value,
-    resim: document.getElementById("blockResim").value
-  });
+window.addMap = function() {
+  const ad = document.getElementById("mapAd").value;
+  const aciklama = document.getElementById("mapAciklama").value;
+  const resimInput = document.getElementById("mapResim");
+  let resimUrl = "";
+  if(resimInput.files.length) {
+    resimUrl = URL.createObjectURL(resimInput.files[0]);
+  }
+  push(mapRef, {ad, aciklama, resim:resimUrl});
 };
-onValue(ref(db,"blocks"),snapshot=>{
-  blockContainer.innerHTML="";
-  snapshot.forEach(s=>{
-    const d = s.val();
+
+window.deleteMap = function(key){ remove(ref(db, "mapler/"+key)); };
+
+// ------------------ Blocklar ------------------
+const blockRef = ref(db, "blocklar");
+onValue(blockRef, snapshot => {
+  const blockList = document.getElementById("blockList");
+  blockList.innerHTML = "";
+  snapshot.forEach(child => {
+    const b = child.val();
     const div = document.createElement("div");
-    div.className="block";
-    div.innerHTML=`<h4>${d.ad}</h4><p>${d.aciklama}</p><img src="${d.resim}" width="100%">`;
-    blockContainer.appendChild(div);
+    div.className = "block";
+    div.innerHTML = `<strong>${b.ad}</strong> Can: ${b.can} Hasar: ${b.hasar} <br>${b.aciklama} <br>${b.resim? `<img src="${b.resim}">`:''} ${isAdmin? `<button onclick="deleteBlock('${child.key}')">Sil</button>`:''}`;
+    blockList.appendChild(div);
   });
 });
 
-// Yorumlar
-document.getElementById("yorumEkleBtn").onclick = ()=>{
-  const refY = ref(db,"yorumlar/"+Date.now());
-  set(refY,{
-    yazar: document.getElementById("yorumYazar").value,
-    metin: document.getElementById("yorumMetin").value
-  });
+window.addBlock = function() {
+  const ad = document.getElementById("blockAd").value;
+  const can = document.getElementById("blockCan").value;
+  const hasar = document.getElementById("blockHasar").value;
+  const aciklama = document.getElementById("blockAciklama").value;
+  const resimInput = document.getElementById("blockResim");
+  let resimUrl = "";
+  if(resimInput.files.length) {
+    resimUrl = URL.createObjectURL(resimInput.files[0]);
+  }
+  push(blockRef, {ad, can, hasar, aciklama, resim:resimUrl});
 };
-onValue(ref(db,"yorumlar"),snapshot=>{
-  yorumContainer.innerHTML="";
-  snapshot.forEach(s=>{
-    const d = s.val();
+
+window.deleteBlock = function(key){ remove(ref(db, "blocklar/"+key)); };
+
+// ------------------ Yorumlar ------------------
+const yorumRef = ref(db, "yorumlar");
+onValue(yorumRef, snapshot => {
+  const yorumList = document.getElementById("yorumList");
+  yorumList.innerHTML = "";
+  snapshot.forEach(child => {
+    const y = child.val();
     const div = document.createElement("div");
-    div.textContent = d.yazar + ": " + d.metin;
-    yorumContainer.appendChild(div);
+    div.className = "comment";
+    div.innerHTML = `<strong>${y.user}</strong>: ${y.text} ${isAdmin? `<button onclick="deleteComment('${child.key}')">Sil</button>`:''}`;
+    yorumList.appendChild(div);
   });
 });
 
+window.addComment = function() {
+  const text = document.getElementById("yorumInput").value;
+  const user = auth.currentUser.email;
+  push(yorumRef, {text, user});
+};
+
+window.deleteComment = function(key){ remove(ref(db, "yorumlar/"+key)); };
 </script>
+
 </body>
   </html>
