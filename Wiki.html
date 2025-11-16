@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wiki Site</title>
+<style>
+body { margin:0; font-family: Arial; display:flex; }
+#menu { width:200px; background:#222; color:#fff; height:100vh; display:flex; flex-direction:column; }
+#menu button { padding:15px; background:#222; color:#fff; border:none; text-align:left; cursor:pointer; }
+#menu button:hover { background:#444; }
+#content { flex:1; padding:20px; overflow:auto; background:#f0f0f0; }
+.block { border:1px solid #ccc; padding:10px; margin-bottom:10px; background:#fff; }
+.block img { max-width:100%; }
+.admin-btn { background:#008CBA; color:white; padding:5px 10px; border:none; cursor:pointer; margin-top:5px; }
+.admin-btn:hover { background:#005f75; }
+input, textarea { width:100%; margin-bottom:5px; padding:5px; }
+</style>
+</head>
+<body>
+
+<div id="menu">
+  <button onclick="showSection('kargolar')">Kargolar</button>
+  <button onclick="showSection('mapler')">Mapler</button>
+  <button onclick="showSection('blocklar')">Blocklar</button>
+  <button onclick="showLogin()" id="loginBtn">Giriş Yap</button>
+  <button onclick="logout()" id="logoutBtn" style="display:none;">Çıkış Yap</button>
+</div>
+
+<div id="content">
+  <h2>Hoşgeldiniz</h2>
+  <p>Sol menüden bir bölüm seçin.</p>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+<script>
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyXXXXXXX",
+  authDomain: "yarreboardedwiki.firebaseapp.com",
+  databaseURL: "https://yarreboardedwiki-default-rtdb.firebaseio.com/",
+  projectId: "yarreboardedwiki",
+  storageBucket: "yarreboardedwiki.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef",
+  measurementId: "G-XXXX"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+
+let currentSection = "";
+let isAdmin = false;
+
+// Başlangıç blok verileri (örnek Base64 resim ile)
+const defaultBlocks = {
+  kargolar: [],
+  mapler: [],
+  blocklar: []
+};
+
+// 10 örnek Kargo
+for(let i=1;i<=10;i++){
+  defaultBlocks.kargolar.push({
+    isim: "Kargo " + i,
+    can: 100,
+    hasar: 0,
+    aciklama: "Kargo açıklaması " + i,
+    resim: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAA..." // örnek Base64
+  });
+}
+// 10 örnek Map
+for(let i=1;i<=10;i++){
+  defaultBlocks.mapler.push({
+    isim: "Map " + i,
+    aciklama: "Map açıklaması " + i,
+    resim: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAA..."
+  });
+}
+// 10 örnek Block
+for(let i=1;i<=10;i++){
+  defaultBlocks.blocklar.push({
+    isim: "Block " + i,
+    aciklama: "Block açıklaması " + i,
+    hasar: 0,
+    resim: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAA..."
+  });
+}
+
+// Firebase veri yoksa ekle
+Object.keys(defaultBlocks).forEach(section=>{
+  const ref = db.ref(section);
+  ref.once('value', snap=>{
+    if(!snap.exists()) ref.set(defaultBlocks[section]);
+  });
+});
+
+// Giriş ve admin kontrol
+auth.onAuthStateChanged(user=>{
+  if(user){
+    if(user.email==="selimhanlafci121@gmail.com") isAdmin=true;
+    document.getElementById("loginBtn").style.display="none";
+    document.getElementById("logoutBtn").style.display="block";
+  } else {
+    isAdmin=false;
+    document.getElementById("loginBtn").style.display="block";
+    document.getElementById("logoutBtn").style.display="none";
+  }
+});
+
+// Bölüm göster
+function showSection(section){
+  currentSection = section;
+  const content = document.getElementById("content");
+  content.innerHTML = `<h2>${section.charAt(0).toUpperCase()+section.slice(1)}</h2>`;
+  const ref = db.ref(section);
+  ref.once('value', snap=>{
+    const data = snap.val();
+    data.forEach((block,i)=>{
+      const div = document.createElement("div");
+      div.className="block";
+      div.innerHTML = `
+        <h3>${block.isim}</h3>
+        <img src="${block.resim}">
+        <p><b>Can:</b> ${block.can||"-"} <b>Hasar:</b> ${block.hasar||"-"}</p>
+        <p>${block.aciklama}</p>
+        ${isAdmin?`<button class="admin-btn" onclick="editBlock('${section}', ${i})">Düzenle</button>`:""}
+      `;
+      content.appendChild(div);
+    });
+    if(isAdmin){
+      const addBtn = document.createElement("button");
+      addBtn.className="admin-btn";
+      addBtn.textContent="Yeni Block Ekle";
+      addBtn.onclick = ()=>addBlock(section);
+      content.appendChild(addBtn);
+    }
+  });
+}
+
+// Admin: Block ekle
+function addBlock(section){
+  const isim = prompt("Block İsmi:");
+  const aciklama = prompt("Açıklama:");
+  const can = prompt("Can (sadece kargo/block için)","100");
+  const hasar = prompt("Hasar (sadece kargo/block için)","0");
+  const resim = prompt("Resim Base64 URL giriniz:");
+  db.ref(section).once('value', snap=>{
+    const data = snap.val()||[];
+    data.push({isim, aciklama, can, hasar, resim});
+    db.ref(section).set(data);
+    showSection(section);
+  });
+}
+
+// Admin: Block düzenle
+function editBlock(section, index){
+  db.ref(section).once('value', snap=>{
+    const data = snap.val();
+    const block = data[index];
+    const isim = prompt("Block İsmi:", block.isim);
+    const aciklama = prompt("Açıklama:", block.aciklama);
+    const can = prompt("Can (sadece kargo/block için):", block.can||0);
+    const hasar = prompt("Hasar (sadece kargo/block için):", block.hasar||0);
+    const resim = prompt("Resim Base64 URL giriniz:", block.resim);
+    data[index] = {isim, aciklama, can, hasar, resim};
+    db.ref(section).set(data);
+    showSection(section);
+  });
+}
+
+// Giriş ve çıkış
+function showLogin(){
+  const email = prompt("Email:");
+  const pass = prompt("Şifre:");
+  auth.signInWithEmailAndPassword(email, pass).catch(err=>alert(err.message));
+}
+function logout(){ auth.signOut(); showSection(""); document.getElementById("content").innerHTML="<h2>Hoşgeldiniz</h2><p>Sol menüden bir bölüm seçin.</p>"; }
+</script>
+
+</body>
+</html>
