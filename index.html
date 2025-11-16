@@ -1,319 +1,655 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>YarReboarded Wiki</title>
-<style>
-  body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; }
-  #menu { width:200px; background:#222; color:#fff; position:fixed; top:0; left:0; bottom:0; padding:10px; }
-  #menu button { width:100%; margin:5px 0; padding:10px; color:#fff; background:#333; border:none; cursor:pointer; }
-  #menu button:hover { background:#555; }
-  #content { margin-left:210px; padding:20px; }
-  .hidden { display:none; }
-  .block, .kargo, .map, .yorum { border:1px solid #ccc; padding:10px; margin:10px 0; background:#fff; }
-  .admin-controls { margin-top:5px; }
-  input, textarea { width:100%; margin:5px 0; padding:5px; }
-  img { max-width:200px; max-height:150px; display:block; margin-top:5px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YarReboarded Wiki</title>
+    <!-- Tailwind CSS (Aesthetic Styling) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
+        .wiki-card { background-color: white; border: 1px solid #e0e7ff; }
+        .btn-primary { background-color: #4f46e5; transition: background-color 0.2s; }
+        .btn-primary:hover { background-color: #4338ca; }
+        .btn-danger { background-color: #ef4444; transition: background-color 0.2s; }
+        .btn-danger:hover { background-color: #dc2626; }
+        .comment-box { border-left: 3px solid #6366f1; padding-left: 1rem; }
+        /* Sayfa geçişleri için flex/block ayarı */
+        .page-content {
+            display: none;
+        }
+        #page-wiki.page-content,
+        #page-detail.page-content,
+        #page-admin.page-content {
+             display: block; /* İçeriğin düzgün görünmesi için block olarak ayarlanır, JS ile yönetilir. */
+        }
+        #page-auth.page-content {
+            display: flex; /* Giriş sayfasını ortalamak için flex kullanılır, JS ile yönetilir. */
+        }
+    </style>
+    <!-- Firebase SDK'ları -->
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js"></script>
 </head>
-<body>
+<body class="min-h-screen flex flex-col">
 
-<div id="menu">
-  <h3>Menü</h3>
-  <button onclick="showSection('anasayfa')">Ana Sayfa</button>
-  <button onclick="showSection('kargolar')">Kargolar</button>
-  <button onclick="showSection('blocklar')">Blocklar</button>
-  <button onclick="showSection('map')">Map</button>
-  <button onclick="showSection('yorumlar')">Yorumlar</button>
-  <button onclick="showSection('admin')">Admin Panel</button>
-  <button onclick="logout()">Çıkış</button>
-</div>
+    <!-- Ana Konteyner -->
+    <div id="app" class="flex-grow p-4 md:p-8 max-w-5xl mx-auto w-full">
 
-<div id="content">
-  <div id="giris" class="">
-    <h2>Giriş / Kayıt</h2>
-    <input type="email" id="email" placeholder="E-posta">
-    <input type="password" id="password" placeholder="Şifre">
-    <button onclick="login()">Giriş Yap</button>
-    <button onclick="signup()">Kayıt Ol</button>
-    <p id="girisMessage"></p>
-  </div>
+        <!-- Başlık ve Navigasyon -->
+        <header class="bg-indigo-700 text-white p-4 rounded-lg shadow-xl mb-6 flex justify-between items-center flex-wrap">
+            <h1 class="text-2xl font-bold">YarReboarded Wiki</h1>
+            <nav id="main-nav" class="flex space-x-4 mt-2 md:mt-0">
+                <button onclick="showPage('wiki')" class="hover:text-indigo-200 transition">Wiki Anasayfa</button>
+                <button id="admin-link" onclick="showPage('admin')" class="hidden hover:text-indigo-200 transition">Admin Paneli</button>
+            </nav>
+            <div id="auth-status" class="mt-4 md:mt-0 flex items-center space-x-3">
+                <!-- Kimlik doğrulama durumu buraya gelecek -->
+            </div>
+        </header>
 
-  <div id="anasayfa" class="hidden">
-    <h2>Ana Sayfa</h2>
-    <p>Hoşgeldin <span id="kullaniciEmail"></span></p>
-    <p>Burada wiki içeriği gözükecek.</p>
-  </div>
+        <!-- Sayfa İçeriği Alanı -->
+        <main id="content-area">
 
-  <div id="kargolar" class="hidden">
-    <h2>Kargolar</h2>
-    <div id="kargoList"></div>
-    <div id="kargoForm" class="hidden">
-      <input type="text" id="kargoAdi" placeholder="Kargo Adı">
-      <input type="number" id="kargoCan" placeholder="Kargo Canı">
-      <textarea id="kargoAciklama" placeholder="Açıklama"></textarea>
-      <input type="file" id="kargoResim">
-      <button onclick="addKargo()">Kaydet</button>
+            <!-- Wiki Ana Sayfası (Varsayılan Görünüm) -->
+            <section id="page-wiki" class="page-content hidden">
+                <h2 class="text-3xl font-semibold text-gray-800 mb-6 border-b pb-2">Wiki İçerikleri</h2>
+                <div id="wiki-category-selector" class="flex space-x-3 mb-6">
+                    <button onclick="loadWikiContent('blocks')" class="btn-primary text-white px-4 py-2 rounded-lg font-medium shadow-md">Blocks</button>
+                    <button onclick="loadWikiContent('cargoes')" class="btn-primary text-white px-4 py-2 rounded-lg font-medium shadow-md">Cargoes</button>
+                    <button onclick="loadWikiContent('maps')" class="btn-primary text-white px-4 py-2 rounded-lg font-medium shadow-md">Maps</button>
+                </div>
+
+                <div id="wiki-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Wiki öğeleri buraya yüklenecek -->
+                    <p class="text-center col-span-full text-gray-500">Lütfen bir kategori seçin.</p>
+                </div>
+            </section>
+
+            <!-- İçerik Detay Sayfası -->
+            <section id="page-detail" class="page-content hidden">
+                <button onclick="showPage('wiki')" class="text-indigo-600 hover:underline mb-4 flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    Geri Dön
+                </button>
+                <div id="detail-content" class="wiki-card p-6 rounded-xl shadow-lg">
+                    <!-- Detaylı içerik buraya yüklenecek -->
+                </div>
+                
+                <!-- Yorumlar Bölümü -->
+                <div class="mt-8">
+                    <h3 class="text-2xl font-semibold mb-4 text-gray-800">Yorumlar</h3>
+                    <div id="comments-list" class="space-y-4 mb-6">
+                        <!-- Yorumlar buraya yüklenecek -->
+                        <p id="no-comments-message" class="text-gray-500">Henüz yorum yok.</p>
+                    </div>
+
+                    <!-- Yorum Ekle Formu -->
+                    <div id="comment-form-container" class="hidden">
+                        <textarea id="comment-text" rows="3" placeholder="Yorumunuzu buraya yazın..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                        <button onclick="addComment()" class="btn-primary text-white px-4 py-2 rounded-lg mt-2 font-medium">Yorum Ekle</button>
+                    </div>
+                    <p id="comment-login-message" class="text-red-500 hidden">Yorum eklemek için giriş yapmalısınız.</p>
+                </div>
+            </section>
+
+            <!-- Giriş / Kayıt Formu -->
+            <section id="page-auth" class="page-content hidden justify-center items-center h-[70vh]">
+                <div class="wiki-card p-8 rounded-xl shadow-lg w-full max-w-md">
+                    <h2 class="text-3xl font-semibold text-gray-800 mb-6">Giriş / Kayıt</h2>
+                    <form id="auth-form" class="space-y-4">
+                        <input type="email" id="auth-email" placeholder="E-posta" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                        <input type="password" id="auth-password" placeholder="Şifre" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                        <button type="submit" class="w-full btn-primary text-white py-3 rounded-lg font-semibold">Giriş Yap</button>
+                        <button type="button" onclick="handleSignUp()" class="w-full bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition">Kayıt Ol</button>
+                        <p id="auth-message" class="text-sm text-red-500 mt-2"></p>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Admin Paneli -->
+            <section id="page-admin" class="page-content hidden">
+                <div class="wiki-card p-6 rounded-xl shadow-lg">
+                    <h2 class="text-3xl font-semibold text-gray-800 mb-6 border-b pb-2">Admin Paneli</h2>
+                    <p id="admin-message" class="text-red-500 hidden mb-4">Bu sayfaya sadece Admin erişebilir.</p>
+
+                    <div id="admin-controls" class="hidden space-y-6">
+                        <div class="space-y-4">
+                            <h3 class="text-xl font-semibold text-gray-700">Yeni İçerik Ekle</h3>
+                            <select id="content-type" class="w-full p-3 border border-gray-300 rounded-lg">
+                                <option value="blocks">Block</option>
+                                <option value="cargoes">Cargo</option>
+                                <option value="maps">Map</option>
+                            </select>
+                            <input type="text" id="content-title" placeholder="Başlık" required class="w-full p-3 border border-gray-300 rounded-lg">
+                            <textarea id="content-text" rows="5" placeholder="İçerik Metni" required class="w-full p-3 border border-gray-300 rounded-lg"></textarea>
+                            <label class="block text-sm font-medium text-gray-700">Görüntü (Base64)</label>
+                            <input type="file" id="content-image-input" accept="image/*" class="w-full p-3 border border-gray-300 rounded-lg">
+                            <input type="hidden" id="content-base64-image">
+                            <button onclick="handleImageUpload()" class="btn-primary text-white px-4 py-2 rounded-lg font-medium mb-3">Görseli Dönüştür (Base64)</button>
+                            <button onclick="saveContent()" class="w-full btn-primary text-white py-3 rounded-lg font-semibold">İçeriği Kaydet</button>
+                            <p id="save-status" class="text-sm text-green-600 mt-2"></p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
     </div>
-  </div>
 
-  <div id="blocklar" class="hidden">
-    <h2>Blocklar</h2>
-    <div id="blockList"></div>
-    <div id="blockForm" class="hidden">
-      <input type="text" id="blockAdi" placeholder="Block Adı">
-      <input type="number" id="blockCan" placeholder="Block Canı">
-      <input type="number" id="blockHasar" placeholder="Block Hasarı">
-      <textarea id="blockAciklama" placeholder="Açıklama"></textarea>
-      <input type="file" id="blockResim">
-      <button onclick="addBlock()">Kaydet</button>
-    </div>
-  </div>
+    <script type="module">
+        // 1️⃣ Firebase Proje Bilgileri ve Admin Tanımlaması
+        const firebaseConfig = {
+            apiKey: "AIzaSyCcLP7390AotwSTUzZLTOmiglNs1a1OxxU",
+            authDomain: "yarreboardedwiki.firebaseapp.com",
+            databaseURL: "https://yarreboardedwiki-default-rtdb.firebaseio.com/",
+            projectId: "yarreboardedwiki",
+            storageBucket: "yarreboardedwiki.firebasestorage.app",
+            messagingSenderId: "365304875142",
+            appId: "1:365304875142:web:5d962e22c249917745a907",
+            measurementId: "G-KCDR6CW19E"
+        };
+        // Admin hesabı: selimhanlafci121@gmail.com
+        const adminEmail = "selimhanlafci121@gmail.com";
 
-  <div id="map" class="hidden">
-    <h2>Map</h2>
-    <div id="mapList"></div>
-    <div id="mapForm" class="hidden">
-      <input type="text" id="mapAdi" placeholder="Map Adı">
-      <textarea id="mapAciklama" placeholder="Açıklama"></textarea>
-      <input type="file" id="mapResim">
-      <button onclick="addMap()">Kaydet</button>
-    </div>
-  </div>
+        // Firebase SDK'larını içe aktarma
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getDatabase, ref, onValue, push, set, serverTimestamp, remove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
-  <div id="yorumlar" class="hidden">
-    <h2>Yorumlar</h2>
-    <div id="yorumList"></div>
-    <textarea id="yorumText" placeholder="Yorum Yaz"></textarea>
-    <button onclick="addYorum()">Gönder</button>
-  </div>
+        // Firebase başlatma
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
 
-  <div id="admin" class="hidden">
-    <h2>Admin Panel</h2>
-    <p>Sadece adminler görebilir</p>
-    <button onclick="toggleForms()">Formları Göster/Gizle</button>
-  </div>
-</div>
+        // Global Durumlar
+        let currentUser = null;
+        let isAdmin = false;
+        let currentCategory = 'blocks'; // Varsayılan kategori
+        let currentContentPath = null; // Detay sayfası için tam yol (örn: 'blocks/item-id')
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
-import { getDatabase, ref, set, push, onValue, remove } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+        // ----------------------------------------------------------------------
+        // 2️⃣ Kimlik Doğrulama (Auth) İşlemleri
+        // ----------------------------------------------------------------------
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCcLP7390AotwSTUzZLTOmiglNs1a1OxxU",
-  authDomain: "yarreboardedwiki.firebaseapp.com",
-  databaseURL: "https://yarreboardedwiki-default-rtdb.firebaseio.com",
-  projectId: "yarreboardedwiki",
-  storageBucket: "yarreboardedwiki.firebasestorage.app",
-  messagingSenderId: "365304875142",
-  appId: "1:365304875142:web:5d962e22c249917745a907",
-  measurementId: "G-KCDR6CW19E"
-};
+        // Kimlik doğrulama durumunu izleme
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            isAdmin = user && user.email === adminEmail;
+            updateUI();
+            
+            // Eğer admin panelindeysek ve admin değilsek, ana sayfaya yönlendir.
+            const isAdminPageActive = document.getElementById('page-admin').classList.contains('flex') || document.getElementById('page-admin').classList.contains('block');
+            if (!isAdmin && isAdminPageActive) {
+                showPage('wiki');
+            }
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getDatabase(app);
+            // Eğer wiki ana sayfasındaysak içeriği yenile (kullanıcı yetkisine göre düzenleme butonu görünür/gizlenir)
+            const isWikiPageActive = document.getElementById('page-wiki').classList.contains('flex') || document.getElementById('page-wiki').classList.contains('block');
+            if (isWikiPageActive) {
+                loadWikiContent(currentCategory);
+            }
+        });
 
-let currentUser = null;
-let isAdmin = false;
+        // UI'yı kullanıcı durumuna göre güncelleme
+        function updateUI() {
+            const authStatusDiv = document.getElementById('auth-status');
+            const adminLink = document.getElementById('admin-link');
+            const commentFormContainer = document.getElementById('comment-form-container');
+            const commentLoginMessage = document.getElementById('comment-login-message');
 
-function showSection(sec) {
-  document.querySelectorAll('#content > div').forEach(d=>d.classList.add('hidden'));
-  document.getElementById(sec).classList.remove('hidden');
-}
+            if (currentUser) {
+                // Giriş Yapılmış Durum
+                authStatusDiv.innerHTML = `
+                    <span class="text-sm font-medium text-indigo-200">${currentUser.email}</span>
+                    <button onclick="handleSignOut()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-full text-sm font-medium transition">Çıkış Yap</button>
+                `;
+                commentFormContainer.classList.remove('hidden');
+                commentLoginMessage.classList.add('hidden');
+            } else {
+                // Çıkış Yapılmış Durum
+                authStatusDiv.innerHTML = `
+                    <button onclick="showPage('auth')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded-full text-sm font-medium transition">Giriş Yap</button>
+                `;
+                commentFormContainer.classList.add('hidden');
+                commentLoginMessage.classList.remove('hidden');
+            }
 
-// --- Authentication ---
-window.login = function() {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  signInWithEmailAndPassword(auth,email,password)
-  .then(userCredential=>{
-    currentUser = userCredential.user;
-    document.getElementById('kullaniciEmail').innerText = currentUser.email;
-    document.getElementById('giris').classList.add('hidden');
-    showSection('anasayfa');
-    checkAdmin();
-  })
-  .catch(err=>{document.getElementById('girisMessage').innerText=err.message});
-}
+            // Admin Paneli Linkini Yönetme
+            if (isAdmin) {
+                adminLink.classList.remove('hidden');
+                document.getElementById('admin-controls').classList.remove('hidden');
+                document.getElementById('admin-message').classList.add('hidden');
+            } else {
+                adminLink.classList.add('hidden');
+                // Admin değilse, admin kontrol paneli alanını gizle
+                const adminPage = document.getElementById('page-admin');
+                if (adminPage) {
+                    document.getElementById('admin-controls').classList.add('hidden');
+                    if (adminPage.classList.contains('block')) { // Admin panelindeyken adminlik yetkisi düşerse
+                        document.getElementById('admin-message').classList.remove('hidden');
+                    }
+                }
+            }
+        }
 
-window.signup = function() {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  createUserWithEmailAndPassword(auth,email,password)
-  .then(userCredential=>{
-    currentUser = userCredential.user;
-    document.getElementById('kullaniciEmail').innerText = currentUser.email;
-    document.getElementById('giris').classList.add('hidden');
-    showSection('anasayfa');
-  })
-  .catch(err=>{document.getElementById('girisMessage').innerText=err.message});
-}
+        // Giriş Yapma İşlemi
+        document.getElementById('auth-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const messageEl = document.getElementById('auth-message');
+            messageEl.textContent = '';
 
-window.logout = function() {
-  signOut(auth).then(()=>{currentUser=null; showSection('giris');}).catch(err=>console.log(err));
-}
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                messageEl.textContent = 'Giriş başarılı!';
+                messageEl.classList.remove('text-red-500');
+                messageEl.classList.add('text-green-500');
+                
+                // Başarılı girişten sonra bekle ve sayfayı değiştir
+                setTimeout(() => showPage('wiki'), 500); 
+            } catch (error) {
+                console.error("Giriş hatası:", error);
+                messageEl.textContent = 'Giriş başarısız: ' + error.message;
+                messageEl.classList.add('text-red-500');
+                messageEl.classList.remove('text-green-500');
+            }
+        });
 
-// --- Admin Check ---
-function checkAdmin() {
-  // Sadece belirli email admin olsun
-  isAdmin = currentUser.email === "selimhanlafci121@gmail.com";
-  if(isAdmin) document.getElementById('admin').classList.remove('hidden');
-}
+        // Kayıt Olma İşlemi
+        async function handleSignUp() {
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const messageEl = document.getElementById('auth-message');
+            messageEl.textContent = '';
 
-// --- Base64 Helper ---
-function fileToBase64(file, callback) {
-  if(!file) { callback(null); return; }
-  const reader = new FileReader();
-  reader.onload = function(e){ callback(e.target.result); }
-  reader.readAsDataURL(file);
-}
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                messageEl.textContent = 'Kayıt başarılı! Otomatik olarak giriş yapıldı.';
+                messageEl.classList.remove('text-red-500');
+                messageEl.classList.add('text-green-500');
 
-// --- CRUD Kargolar ---
-function loadKargolar() {
-  const kargoList = document.getElementById('kargoList');
-  kargoList.innerHTML='';
-  onValue(ref(db,'kargolar'),snapshot=>{
-    kargoList.innerHTML='';
-    snapshot.forEach(snap=>{
-      const k = snap.val();
-      const div = document.createElement('div'); div.className='kargo';
-      div.innerHTML=`<strong>${k.ad}</strong><br>Can: ${k.can}<br>Açıklama: ${k.aciklama}`;
-      if(k.resim) div.innerHTML += `<img src="${k.resim}">`;
-      if(isAdmin){
-        const delBtn=document.createElement('button');
-        delBtn.innerText='Sil';
-        delBtn.onclick=()=>{ remove(ref(db,'kargolar/'+snap.key)); };
-        div.appendChild(delBtn);
-      }
-      kargoList.appendChild(div);
-    });
-  });
-}
+                // Başarılı kayıttan sonra bekle ve sayfayı değiştir
+                setTimeout(() => showPage('wiki'), 500);
+            } catch (error) {
+                console.error("Kayıt hatası:", error);
+                messageEl.textContent = 'Kayıt başarısız: ' + error.message;
+                messageEl.classList.add('text-red-500');
+                messageEl.classList.remove('text-green-500');
+            }
+        }
 
-window.addKargo = function(){
-  if(!isAdmin) return alert('Sadece admin ekleyebilir!');
-  const ad=document.getElementById('kargoAdi').value;
-  const can=document.getElementById('kargoCan').value;
-  const aciklama=document.getElementById('kargoAciklama').value;
-  const file=document.getElementById('kargoResim').files[0];
-  fileToBase64(file,(resim)=>{
-    push(ref(db,'kargolar'),{ad,can,aciklama,resim});
-  });
-}
+        // Çıkış Yapma İşlemi
+        function handleSignOut() {
+            signOut(auth).then(() => {
+                // Çıkış başarılı
+                showPage('wiki');
+            }).catch((error) => {
+                console.error("Çıkış hatası:", error);
+            });
+        }
 
-// --- CRUD Blocklar ---
-function loadBlocklar() {
-  const list = document.getElementById('blockList'); list.innerHTML='';
-  onValue(ref(db,'blocklar'),snapshot=>{
-    list.innerHTML='';
-    snapshot.forEach(snap=>{
-      const b = snap.val();
-      const div=document.createElement('div'); div.className='block';
-      div.innerHTML=`<strong>${b.ad}</strong><br>Can: ${b.can}<br>Hasar: ${b.hasar}<br>Açıklama: ${b.aciklama}`;
-      if(b.resim) div.innerHTML+=`<img src="${b.resim}">`;
-      if(isAdmin){
-        const delBtn=document.createElement('button'); delBtn.innerText='Sil';
-        delBtn.onclick=()=>{ remove(ref(db,'blocklar/'+snap.key)); };
-        div.appendChild(delBtn);
-      }
-      list.appendChild(div);
-    });
-  });
-}
 
-window.addBlock = function(){
-  if(!isAdmin) return alert('Sadece admin ekleyebilir!');
-  const ad=document.getElementById('blockAdi').value;
-  const can=document.getElementById('blockCan').value;
-  const hasar=document.getElementById('blockHasar').value;
-  const aciklama=document.getElementById('blockAciklama').value;
-  const file=document.getElementById('blockResim').files[0];
-  fileToBase64(file,(resim)=>{
-    push(ref(db,'blocklar'),{ad,can,hasar,aciklama,resim});
-  });
-}
+        // ----------------------------------------------------------------------
+        // 3️⃣ Sayfa ve Navigasyon İşlemleri
+        // ----------------------------------------------------------------------
 
-// --- CRUD Map ---
-function loadMap() {
-  const list = document.getElementById('mapList'); list.innerHTML='';
-  onValue(ref(db,'map'),snapshot=>{
-    list.innerHTML='';
-    snapshot.forEach(snap=>{
-      const m = snap.val();
-      const div=document.createElement('div'); div.className='map';
-      div.innerHTML=`<strong>${m.ad}</strong><br>Açıklama: ${m.aciklama}`;
-      if(m.resim) div.innerHTML+=`<img src="${m.resim}">`;
-      if(isAdmin){
-        const delBtn=document.createElement('button'); delBtn.innerText='Sil';
-        delBtn.onclick=()=>{ remove(ref(db,'map/'+snap.key)); };
-        div.appendChild(delBtn);
-      }
-      list.appendChild(div);
-    });
-  });
-}
+        // Sayfa değiştirme fonksiyonu
+        function showPage(pageId) {
+            document.querySelectorAll('.page-content').forEach(page => {
+                page.classList.add('hidden');
+                page.classList.remove('flex', 'block'); // Tüm gösterim sınıflarını kaldır
+            });
 
-window.addMap = function(){
-  if(!isAdmin) return alert('Sadece admin ekleyebilir!');
-  const ad=document.getElementById('mapAdi').value;
-  const aciklama=document.getElementById('mapAciklama').value;
-  const file=document.getElementById('mapResim').files[0];
-  fileToBase64(file,(resim)=>{
-    push(ref(db,'map'),{ad,aciklama,resim});
-  });
-}
+            const targetPage = document.getElementById(`page-${pageId}`);
+            if (targetPage) {
+                if (pageId === 'auth') {
+                    targetPage.classList.add('flex', 'flex-col', 'items-center', 'justify-center');
+                    targetPage.classList.remove('hidden');
+                } else if (pageId === 'admin') {
+                    // Admin sayfası için admin yetkisi kontrolü
+                    if (isAdmin) {
+                        targetPage.classList.add('block');
+                        document.getElementById('admin-controls').classList.remove('hidden');
+                        document.getElementById('admin-message').classList.add('hidden');
+                    } else {
+                        targetPage.classList.add('block'); // Yine de blok olarak göster ki mesaj görünebilsin
+                        document.getElementById('admin-message').classList.remove('hidden');
+                        document.getElementById('admin-controls').classList.add('hidden');
+                    }
+                    targetPage.classList.remove('hidden');
+                } else {
+                     targetPage.classList.add('block');
+                     targetPage.classList.remove('hidden');
+                }
+            }
+            
+            // Ana sayfaya dönünce içeriği yeniden yükle
+            if (pageId === 'wiki') {
+                loadWikiContent(currentCategory);
+            }
+        }
 
-// --- CRUD Yorumlar ---
-function loadYorumlar() {
-  const list = document.getElementById('yorumList'); list.innerHTML='';
-  onValue(ref(db,'yorumlar'),snapshot=>{
-    list.innerHTML='';
-    snapshot.forEach(snap=>{
-      const y = snap.val();
-      const div=document.createElement('div'); div.className='yorum';
-      div.innerHTML=`<strong>${y.email}</strong>: ${y.text}`;
-      if(isAdmin){
-        const delBtn=document.createElement('button'); delBtn.innerText='Sil';
-        delBtn.onclick=()=>{ remove(ref(db,'yorumlar/'+snap.key)); };
-        div.appendChild(delBtn);
-      }
-      list.appendChild(div);
-    });
-  });
-}
 
-window.addYorum = function(){
-  const text=document.getElementById('yorumText').value;
-  if(!currentUser) return alert('Giriş yapın');
-  push(ref(db,'yorumlar'),{text,email:currentUser.email});
-  document.getElementById('yorumText').value='';
-}
+        // ----------------------------------------------------------------------
+        // 4️⃣ Wiki İçerik Görüntüleme ve Yorum İşlemleri
+        // ----------------------------------------------------------------------
 
-// --- Admin Form Toggle ---
-window.toggleForms = function(){
-  document.getElementById('kargoForm').classList.toggle('hidden');
-  document.getElementById('blockForm').classList.toggle('hidden');
-  document.getElementById('mapForm').classList.toggle('hidden');
-}
+        // Kategoriye göre içerik listesini Realtime DB'den yükleme
+        function loadWikiContent(category) {
+            currentCategory = category;
+            const listEl = document.getElementById('wiki-list');
+            listEl.innerHTML = '<p class="text-center col-span-full text-gray-500">İçerikler yükleniyor...</p>';
 
-// --- Initialize Loads ---
-auth.onAuthStateChanged(user=>{
-  if(user){
-    currentUser = user;
-    document.getElementById('kullaniciEmail').innerText=currentUser.email;
-    document.getElementById('giris').classList.add('hidden');
-    showSection('anasayfa');
-    checkAdmin();
-    loadKargolar(); loadBlocklar(); loadMap(); loadYorumlar();
-  } else {
-    currentUser=null;
-    showSection('giris');
-  }
-});
-</script>
+            // Kategori butonlarını işaretleme
+            document.querySelectorAll('#wiki-category-selector button').forEach(btn => {
+                if (btn.textContent.toLowerCase() === category) {
+                    btn.classList.add('bg-indigo-600');
+                    btn.classList.remove('btn-primary');
+                } else {
+                    btn.classList.remove('bg-indigo-600');
+                    btn.classList.add('btn-primary');
+                }
+            });
 
+
+            const contentRef = ref(db, category);
+
+            // Veri değişimini anlık olarak dinleme
+            // *Bu dinleyiciyi kapatmıyoruz, sürekli güncel kalmasını sağlıyoruz*
+            onValue(contentRef, (snapshot) => {
+                const data = snapshot.val();
+                listEl.innerHTML = ''; // Listeyi temizle
+
+                if (!data) {
+                    listEl.innerHTML = '<p class="text-center col-span-full text-gray-500">Bu kategoride henüz içerik bulunmamaktadır.</p>';
+                    return;
+                }
+
+                // Veriyi listeye dönüştürme ve tersine çevirme (en yeni en üstte)
+                const items = Object.keys(data).map(key => ({ id: key, category: category, ...data[key] })).reverse();
+
+                items.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'wiki-card p-4 rounded-xl shadow-md flex flex-col space-y-3 hover:shadow-lg transition duration-300';
+                    
+                    const imageHtml = item.base64Image 
+                        ? `<img src="${item.base64Image}" alt="${item.title}" class="w-full h-40 object-cover rounded-lg mb-3" onerror="this.onerror=null; this.src='https://placehold.co/400x160/cbd5e1/475569?text=Görsel+Yüklenemedi'">`
+                        : `<div class="w-full h-40 bg-gray-200 flex items-center justify-center rounded-lg mb-3 text-gray-500">Görsel Yok</div>`;
+                    
+                    const commentCount = Object.keys(item.comments || {}).length;
+
+                    card.innerHTML = `
+                        ${imageHtml}
+                        <h3 class="text-xl font-semibold text-indigo-700">${item.title}</h3>
+                        <p class="text-gray-600 line-clamp-3">${item.content.substring(0, 100)}...</p>
+                        <p class="text-xs text-gray-400">Yazar: ${item.author || 'Anonim'}</p>
+                        <div class="flex justify-between items-center mt-auto pt-2 border-t border-gray-100">
+                            <button onclick="showDetail('${item.category}/${item.id}')" class="text-sm font-medium text-indigo-500 hover:text-indigo-700 transition">Detayları Gör (${commentCount} Yorum)</button>
+                            ${isAdmin ? `<button onclick="deleteContent('${item.category}/${item.id}')" class="btn-danger text-white px-3 py-1 rounded-lg text-xs hover:shadow-md">Sil</button>` : ''}
+                        </div>
+                    `;
+                    listEl.appendChild(card);
+                });
+            });
+        }
+
+        // İçerik Detayını Görüntüleme
+        function showDetail(path) {
+            currentContentPath = path;
+            showPage('detail');
+            const [category, id] = path.split('/');
+            const detailEl = document.getElementById('detail-content');
+            detailEl.innerHTML = '<p class="text-center text-gray-500">İçerik yükleniyor...</p>';
+
+            const itemRef = ref(db, path);
+            onValue(itemRef, (snapshot) => {
+                const item = snapshot.val();
+                if (!item) {
+                    detailEl.innerHTML = '<p class="text-center text-red-500">İçerik bulunamadı.</p>';
+                    document.getElementById('comments-list').innerHTML = '';
+                    document.getElementById('no-comments-message').classList.remove('hidden');
+                    return;
+                }
+                
+                const imageHtml = item.base64Image 
+                    ? `<img src="${item.base64Image}" alt="${item.title}" class="w-full max-h-96 object-contain rounded-xl shadow-inner mb-6" onerror="this.onerror=null; this.src='https://placehold.co/800x384/cbd5e1/475569?text=Görsel+Yüklenemedi'">`
+                    : `<div class="w-full h-48 bg-gray-200 flex items-center justify-center rounded-xl mb-6 text-gray-500 text-lg">Görsel Yok</div>`;
+
+                // Metin alanını new line karakterlerini koruyarak göstermek için stil kullanılır.
+                detailEl.innerHTML = `
+                    <h2 class="text-4xl font-extrabold text-indigo-800 mb-4">${item.title}</h2>
+                    <p class="text-sm text-gray-500 mb-6 border-b pb-4">Kategori: ${category.charAt(0).toUpperCase() + category.slice(1)} | Yazar: ${item.author || 'Anonim'}</p>
+                    ${imageHtml}
+                    <div class="prose max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap">${item.content}</div>
+                `;
+
+                renderComments(item.comments || {});
+            });
+        }
+
+        // Yorumları Görüntüleme
+        function renderComments(comments) {
+            const commentsListEl = document.getElementById('comments-list');
+            commentsListEl.innerHTML = '';
+            document.getElementById('no-comments-message').classList.add('hidden');
+
+            const commentArray = Object.keys(comments).map(key => ({ id: key, ...comments[key] })).reverse();
+
+            if (commentArray.length === 0) {
+                document.getElementById('no-comments-message').classList.remove('hidden');
+                return;
+            }
+
+            commentArray.forEach(comment => {
+                const commentEl = document.createElement('div');
+                commentEl.className = 'comment-box bg-indigo-50 p-4 rounded-lg shadow-sm';
+                commentEl.innerHTML = `
+                    <p class="text-gray-700">${comment.text}</p>
+                    <div class="flex justify-between items-center mt-2 pt-2 border-t border-indigo-200">
+                        <span class="text-xs font-medium text-indigo-600">@${comment.user || 'Anonim'}</span>
+                        ${isAdmin ? `<button onclick="deleteComment('${comment.id}')" class="text-xs text-red-500 hover:text-red-700 transition">Sil</button>` : ''}
+                    </div>
+                `;
+                commentsListEl.appendChild(commentEl);
+            });
+        }
+
+        // Yorum Ekleme
+        async function addComment() {
+            if (!currentUser) {
+                // UI zaten bunu göstermeli, ek bir kontrol
+                return;
+            }
+
+            const commentTextEl = document.getElementById('comment-text');
+            const commentText = commentTextEl.value.trim();
+
+            if (!commentText) {
+                // Özel bir modal/mesaj kutusu kullanın (alert kullanmayın)
+                console.warn('Yorum metni boş olamaz.');
+                return;
+            }
+
+            if (!currentContentPath) {
+                console.error("Yorum eklenecek içerik yolu belirlenmedi.");
+                return;
+            }
+
+            const newComment = {
+                text: commentText,
+                user: currentUser.email,
+                timestamp: serverTimestamp()
+            };
+
+            try {
+                // Yorumları ilgili içeriğin altına ekleme
+                const commentsRef = ref(db, `${currentContentPath}/comments`);
+                await push(commentsRef, newComment);
+                commentTextEl.value = ''; // Alanı temizle
+            } catch (error) {
+                console.error("Yorum ekleme hatası:", error);
+                // Kullanıcıya hata mesajı göstermek için özel bir UI kullanın
+            }
+        }
+
+        // Admin: İçerik veya Yorum Silme
+        async function deleteContent(path) {
+            if (!isAdmin) return;
+
+            // TODO: Özel modal ile onay alın (alert kullanmayın)
+            if (!confirm('Bu içeriği kalıcı olarak silmek istediğinizden emin misiniz?')) return; 
+
+            try {
+                await remove(ref(db, path));
+                // Başarılı mesajı gösterimi için özel UI kullanın
+                console.log('İçerik başarıyla silindi:', path);
+                // onValue dinleyicisi otomatik olarak UI'yı güncelleyecektir.
+            } catch (error) {
+                console.error("İçerik silme hatası:", error);
+                // Kullanıcıya hata mesajı göstermek için özel bir UI kullanın
+            }
+        }
+
+        async function deleteComment(commentId) {
+            if (!isAdmin) return;
+            if (!currentContentPath) return;
+
+            // TODO: Özel modal ile onay alın (alert kullanmayın)
+            if (!confirm('Bu yorumu silmek istediğinizden emin misiniz?')) return;
+
+            try {
+                const commentPath = `${currentContentPath}/comments/${commentId}`;
+                await remove(ref(db, commentPath));
+                // Başarılı mesajı gösterimi için özel UI kullanın
+                console.log('Yorum başarıyla silindi:', commentPath);
+                // onValue dinleyicisi otomatik olarak UI'yı güncelleyecektir.
+            } catch (error) {
+                console.error("Yorum silme hatası:", error);
+                // Kullanıcıya hata mesajı göstermek için özel bir UI kullanın
+            }
+        }
+
+
+        // ----------------------------------------------------------------------
+        // 5️⃣ Admin Paneli İşlemleri (İçerik Ekleme)
+        // ----------------------------------------------------------------------
+
+        // Görseli Base64'e dönüştürme
+        function handleImageUpload() {
+            const file = document.getElementById('content-image-input').files[0];
+            const base64Input = document.getElementById('content-base64-image');
+            const statusEl = document.getElementById('save-status');
+            statusEl.textContent = 'Görsel dönüştürülüyor...';
+
+            if (file) {
+                // Dosya boyut kontrolü (opsiyonel ama iyi bir uygulama)
+                if (file.size > 1024 * 1024 * 5) { // 5MB'den büyükse reddet
+                    statusEl.textContent = 'Hata: Görsel boyutu 5MB\'ı geçmemelidir.';
+                    statusEl.classList.remove('text-green-600');
+                    statusEl.classList.add('text-red-600');
+                    base64Input.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    base64Input.value = e.target.result;
+                    statusEl.textContent = 'Görsel Base64 olarak hazırlandı.';
+                    statusEl.classList.remove('text-red-600');
+                    statusEl.classList.add('text-green-600');
+                };
+                reader.onerror = function() {
+                    statusEl.textContent = 'Görsel dönüştürme hatası.';
+                    statusEl.classList.remove('text-green-600');
+                    statusEl.classList.add('text-red-600');
+                    base64Input.value = '';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                statusEl.textContent = 'Lütfen bir dosya seçin.';
+                statusEl.classList.remove('text-green-600');
+                statusEl.classList.add('text-red-600');
+                base64Input.value = '';
+            }
+        }
+
+        // Yeni İçerik Kaydetme
+        async function saveContent() {
+            if (!isAdmin) {
+                console.error('Bu işlemi yapmaya yetkiniz yok.');
+                return;
+            }
+
+            const type = document.getElementById('content-type').value;
+            const title = document.getElementById('content-title').value.trim();
+            const content = document.getElementById('content-text').value.trim();
+            const base64Image = document.getElementById('content-base64-image').value;
+            const statusEl = document.getElementById('save-status');
+            statusEl.textContent = '';
+
+            if (!title || !content) {
+                statusEl.textContent = 'Başlık ve İçerik alanları zorunludur.';
+                statusEl.classList.remove('text-green-600');
+                statusEl.classList.add('text-red-600');
+                return;
+            }
+
+            const newWikiItem = {
+                title: title,
+                content: content,
+                category: type,
+                base64Image: base64Image || null,
+                author: currentUser.email,
+                createdAt: serverTimestamp(),
+                comments: {} // Başlangıçta boş yorumlar nesnesi
+            };
+
+            try {
+                const contentRef = ref(db, type);
+                await push(contentRef, newWikiItem);
+                
+                statusEl.textContent = `${type.toUpperCase()} içeriği başarıyla kaydedildi!`;
+                statusEl.classList.remove('text-red-600');
+                statusEl.classList.add('text-green-600');
+                
+                // Formu temizle
+                document.getElementById('content-title').value = '';
+                document.getElementById('content-text').value = '';
+                document.getElementById('content-base64-image').value = '';
+                document.getElementById('content-image-input').value = '';
+
+            } catch (error) {
+                console.error("İçerik kaydetme hatası:", error);
+                statusEl.textContent = 'Kaydetme hatası: ' + error.message;
+                statusEl.classList.remove('text-green-600');
+                statusEl.classList.add('text-red-600');
+            }
+        }
+
+        // Uygulama yüklendiğinde varsayılan sayfayı göster
+        window.onload = () => {
+            // onAuthStateChanged tetiklenmeden önce ilk sayfayı göster (auth durumu belirlenirken)
+            showPage('wiki'); 
+        };
+
+        // Global fonksiyonları window'a ekleme (HTML event handler'lar için gerekli)
+        window.showPage = showPage;
+        window.loadWikiContent = loadWikiContent;
+        window.showDetail = showDetail;
+        window.addComment = addComment;
+        window.deleteContent = deleteContent;
+        window.deleteComment = deleteComment;
+        window.handleSignUp = handleSignUp;
+        window.handleSignOut = handleSignOut;
+        window.handleImageUpload = handleImageUpload;
+        window.saveContent = saveContent;
+
+    </script>
 </body>
 </html>
+
