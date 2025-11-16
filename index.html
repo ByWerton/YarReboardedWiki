@@ -3,109 +3,121 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yar Reboarded Wiki</title>
+<title>YarReboarded Wiki</title>
 <style>
-body { margin:0; font-family:sans-serif; background:#f0f0f0; }
-header { background:#333; color:white; padding:1rem; text-align:center; }
-#loginSection, #mainSection { display:none; }
-input, button, textarea { padding:0.5rem; margin:0.2rem 0; }
-.container { display:flex; }
-.menu { width:200px; background:#222; color:white; min-height:90vh; padding:1rem; }
-.menu button { display:block; width:100%; margin-bottom:0.5rem; cursor:pointer; }
-.content { flex:1; padding:1rem; }
-.block, .map, .cargo { border:1px solid #999; padding:1rem; margin:1rem 0; background:white; }
-.admin { background:#ffcccc; padding:0.5rem; margin:0.5rem 0; }
-img { max-width:100px; display:block; margin-bottom:0.5rem; }
-textarea { width:100%; }
+  body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f4f4f4; }
+  #menu { position: fixed; left:0; top:0; bottom:0; width:220px; background:#222; color:white; padding:10px; display:flex; flex-direction:column; }
+  #menu button { margin:5px 0; padding:10px; background:#444; color:white; border:none; cursor:pointer; }
+  #menu button:hover { background:#555; }
+  #content { margin-left:230px; padding:20px; }
+  .hidden { display:none; }
+  input, textarea { width:100%; margin:5px 0; padding:5px; }
+  .block, .kargo, .map, .yorum { border:1px solid #ccc; padding:10px; margin:10px 0; background:white; }
+  .admin-btn { background:red; color:white; padding:5px; margin-left:5px; cursor:pointer; }
+  .image-preview { width:100px; height:100px; object-fit:cover; margin-top:5px; }
 </style>
 </head>
 <body>
 
-<header>
-  <h1>Yar Reboarded Wiki</h1>
-</header>
-
-<div id="loginSection">
-  <h2>Giriş / Kayıt</h2>
-  <input type="email" id="email" placeholder="Email"><br>
-  <input type="password" id="password" placeholder="Şifre"><br>
-  <button onclick="login()">Giriş Yap</button>
-  <button onclick="signup()">Kayıt Ol</button>
-  <p id="loginMsg"></p>
+<div id="menu">
+  <button onclick="showPage('anasayfa')">Ana Sayfa</button>
+  <button onclick="showPage('kargolar')">Kargolar</button>
+  <button onclick="showPage('maplar')">Map</button>
+  <button onclick="showPage('blocklar')">Blocklar</button>
+  <button onclick="showPage('yorumlar')">Yorumlar</button>
+  <button onclick="showPage('admin')">Admin Paneli</button>
+  <button onclick="logout()">Çıkış Yap</button>
 </div>
 
-<div id="mainSection">
-  <div class="container">
-    <div class="menu">
-      <button onclick="showSection('home')">Anasayfa</button>
-      <button onclick="showSection('cargo')">Kargolar</button>
-      <button onclick="showSection('blocks')">Blocklar</button>
-      <button onclick="showSection('maps')">Mapler</button>
-      <button onclick="showSection('comments')">Yorumlar</button>
-      <button onclick="logout()">Çıkış</button>
-    </div>
-    <div class="content">
-      <div id="home"><h2>Hoşgeldiniz</h2></div>
+<div id="content">
 
-      <div id="cargo" style="display:none;">
-        <h2>Kargolar</h2>
-        <div id="cargoList"></div>
-        <div id="cargoAdmin" class="admin">
-          <h3>Yeni Kargo Ekle</h3>
-          <input type="text" id="cargoName" placeholder="Kargo Adı"><br>
-          <input type="number" id="cargoLife" placeholder="Kargo Canı"><br>
-          <input type="number" id="cargoDamage" placeholder="Kargo Hasarı"><br>
-          <input type="file" id="cargoImage"><br>
-          <textarea id="cargoDesc" placeholder="Açıklama"></textarea><br>
-          <button onclick="addCargo()">Ekle</button>
-        </div>
-      </div>
+<!-- Giriş/Kayıt -->
+<div id="auth-page">
+  <h2>Giriş / Kayıt</h2>
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Şifre">
+  <button onclick="login()">Giriş Yap</button>
+  <button onclick="register()">Kayıt Ol</button>
+</div>
 
-      <div id="blocks" style="display:none;">
-        <h2>Blocklar</h2>
-        <div id="blockList"></div>
-        <div id="blockAdmin" class="admin">
-          <h3>Yeni Block Ekle</h3>
-          <input type="text" id="blockName" placeholder="Block Adı"><br>
-          <input type="number" id="blockLife" placeholder="Block Canı"><br>
-          <input type="number" id="blockDamage" placeholder="Block Hasarı"><br>
-          <input type="file" id="blockImage"><br>
-          <textarea id="blockDesc" placeholder="Açıklama"></textarea><br>
-          <button onclick="addBlock()">Ekle</button>
-        </div>
-      </div>
+<!-- Ana Sayfa -->
+<div id="anasayfa" class="hidden">
+  <h2>Ana Sayfa</h2>
+  <p>Hoşgeldin <span id="user-name"></span>!</p>
+</div>
 
-      <div id="maps" style="display:none;">
-        <h2>Mapler</h2>
-        <div id="mapList"></div>
-        <div id="mapAdmin" class="admin">
-          <h3>Yeni Map Ekle</h3>
-          <input type="text" id="mapName" placeholder="Map Adı"><br>
-          <input type="file" id="mapImage"><br>
-          <textarea id="mapDesc" placeholder="Açıklama"></textarea><br>
-          <button onclick="addMap()">Ekle</button>
-        </div>
-      </div>
-
-      <div id="comments" style="display:none;">
-        <h2>Yorumlar</h2>
-        <div id="commentList"></div>
-        <div id="commentAdmin" class="admin">
-          <h3>Yeni Yorum Ekle</h3>
-          <textarea id="commentText" placeholder="Yorum"></textarea><br>
-          <button onclick="addComment()">Ekle</button>
-        </div>
-      </div>
-
-    </div>
+<!-- Kargolar -->
+<div id="kargolar" class="hidden">
+  <h2>Kargolar</h2>
+  <div id="kargo-list"></div>
+  <div id="add-kargo-form" class="hidden">
+    <h3>Yeni Kargo Ekle</h3>
+    <input type="text" id="kargo-isim" placeholder="Kargo İsmi">
+    <input type="number" id="kargo-can" placeholder="Kargo Canı">
+    <input type="number" id="kargo-hasar" placeholder="Kargo Hasarı">
+    <input type="file" id="kargo-resim">
+    <textarea id="kargo-aciklama" placeholder="Açıklama"></textarea>
+    <button onclick="addKargo()">Kaydet</button>
   </div>
+</div>
+
+<!-- Maplar -->
+<div id="maplar" class="hidden">
+  <h2>Maplar</h2>
+  <div id="map-list"></div>
+  <div id="add-map-form" class="hidden">
+    <h3>Yeni Map Ekle</h3>
+    <input type="text" id="map-isim" placeholder="Map İsmi">
+    <input type="file" id="map-resim">
+    <textarea id="map-aciklama" placeholder="Açıklama"></textarea>
+    <button onclick="addMap()">Kaydet</button>
+  </div>
+</div>
+
+<!-- Blocklar -->
+<div id="blocklar" class="hidden">
+  <h2>Blocklar</h2>
+  <div id="block-list"></div>
+  <div id="add-block-form" class="hidden">
+    <h3>Yeni Block Ekle</h3>
+    <input type="text" id="block-isim" placeholder="Block İsmi">
+    <input type="number" id="block-can" placeholder="Block Canı">
+    <input type="number" id="block-hasar" placeholder="Block Hasarı">
+    <input type="file" id="block-resim">
+    <textarea id="block-aciklama" placeholder="Açıklama"></textarea>
+    <button onclick="addBlock()">Kaydet</button>
+  </div>
+</div>
+
+<!-- Yorumlar -->
+<div id="yorumlar" class="hidden">
+  <h2>Yorumlar</h2>
+  <div id="yorum-list"></div>
+  <div id="add-yorum-form">
+    <textarea id="yorum-text" placeholder="Yorum yaz..."></textarea>
+    <button onclick="addYorum()">Gönder</button>
+  </div>
+</div>
+
+<!-- Admin Paneli -->
+<div id="admin" class="hidden">
+  <h2>Admin Paneli</h2>
+  <p>Sitedeki tüm içerikleri yönetebilirsiniz.</p>
+  <div id="admin-controls">
+    <button onclick="toggleForm('add-kargo-form')">Kargo Ekle</button>
+    <button onclick="toggleForm('add-map-form')">Map Ekle</button>
+    <button onclick="toggleForm('add-block-form')">Block Ekle</button>
+  </div>
+</div>
+
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+import { getDatabase, ref, push, set, onValue, remove } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyCcLP7390AotwSTUzZLTOmiglNs1a1OxxU",
   authDomain: "yarreboardedwiki.firebaseapp.com",
@@ -121,179 +133,201 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
 
-const adminEmail = "selimhanlafci121@gmail.com";
+let currentUser = null;
+let adminEmail = "selimhanlafci121@gmail.com"; // Sadece sen admin ol
 
-function showSection(id){
-  document.querySelectorAll('.content > div').forEach(d=>d.style.display='none');
-  document.getElementById(id).style.display='block';
+function showPage(page) {
+  const pages = ['anasayfa','kargolar','maplar','blocklar','yorumlar','admin'];
+  pages.forEach(p=>document.getElementById(p).classList.add('hidden'));
+  document.getElementById(page).classList.remove('hidden');
 }
 
-window.signup = function(){
+function toggleForm(formId){
+  const form = document.getElementById(formId);
+  form.classList.toggle('hidden');
+}
+
+// Giriş / Kayıt
+function login(){
   const email = document.getElementById('email').value;
-  const pass = document.getElementById('password').value;
-  createUserWithEmailAndPassword(auth,email,pass).then(()=>{}).catch(e=>alert(e.message));
+  const password = document.getElementById('password').value;
+  signInWithEmailAndPassword(auth,email,password)
+  .then(()=>console.log("Giriş başarılı"))
+  .catch(err=>alert(err.message));
 }
-
-window.login = function(){
+function register(){
   const email = document.getElementById('email').value;
-  const pass = document.getElementById('password').value;
-  signInWithEmailAndPassword(auth,email,pass).then(()=>{}).catch(e=>alert(e.message));
+  const password = document.getElementById('password').value;
+  createUserWithEmailAndPassword(auth,email,password)
+  .then(()=>console.log("Kayıt başarılı"))
+  .catch(err=>alert(err.message));
+}
+function logout(){
+  signOut(auth).then(()=>location.reload());
 }
 
-window.logout = function(){
-  signOut(auth).then(()=>{ location.reload(); });
-}
-
-onAuthStateChanged(auth,user=>{
+// Auth durumu
+onAuthStateChanged(auth, user=>{
   if(user){
-    document.getElementById('loginSection').style.display='none';
-    document.getElementById('mainSection').style.display='block';
-    const isAdmin = user.email===adminEmail;
-    document.querySelectorAll('.admin').forEach(a=>a.style.display=isAdmin?'block':'none');
-    loadAllData();
+    currentUser = user;
+    document.getElementById('auth-page').classList.add('hidden');
+    document.getElementById('user-name').textContent = user.email;
+    showPage('anasayfa');
+    if(user.email===adminEmail){
+      document.getElementById('admin').classList.remove('hidden');
+      ['add-kargo-form','add-map-form','add-block-form'].forEach(f=>document.getElementById(f).classList.remove('hidden'));
+    }
+    loadKargolar();
+    loadMaps();
+    loadBlocks();
+    loadYorumlar();
   } else {
-    document.getElementById('loginSection').style.display='block';
-    document.getElementById('mainSection').style.display='none';
+    document.getElementById('auth-page').classList.remove('hidden');
+    document.getElementById('admin').classList.add('hidden');
   }
 });
 
-function readFileAsBase64(file, callback){
-  if(!file){ callback(''); return; }
+// Base64 dosya okuma
+function fileToBase64(file, callback){
   const reader = new FileReader();
   reader.onload = ()=>callback(reader.result);
   reader.readAsDataURL(file);
 }
 
 // Kargo
-window.addCargo = function(){
-  const name = document.getElementById('cargoName').value;
-  const life = document.getElementById('cargoLife').value;
-  const damage = document.getElementById('cargoDamage').value;
-  const imageFile = document.getElementById('cargoImage').files[0];
-  const desc = document.getElementById('cargoDesc').value;
-  readFileAsBase64(imageFile, img=>{
-    push(ref(db,'cargos'),{name,life,damage,img,desc});
-    document.getElementById('cargoName').value='';
-    document.getElementById('cargoLife').value='';
-    document.getElementById('cargoDamage').value='';
-    document.getElementById('cargoImage').value='';
-    document.getElementById('cargoDesc').value='';
-  });
+function addKargo(){
+  const isim = document.getElementById('kargo-isim').value;
+  const can = document.getElementById('kargo-can').value;
+  const hasar = document.getElementById('kargo-hasar').value;
+  const resimFile = document.getElementById('kargo-resim').files[0];
+  const aciklama = document.getElementById('kargo-aciklama').value;
+  if(!isim) return alert("İsim gerekli");
+  if(resimFile){
+    fileToBase64(resimFile, base64=>{
+      const kargoRef = push(ref(db,'kargolar'));
+      set(kargoRef,{isim,can,hasar,resim:base64,aciklama});
+    });
+  } else {
+    const kargoRef = push(ref(db,'kargolar'));
+    set(kargoRef,{isim,can,hasar,resim:'',aciklama});
+  }
 }
-
-// Block
-window.addBlock = function(){
-  const name = document.getElementById('blockName').value;
-  const life = document.getElementById('blockLife').value;
-  const damage = document.getElementById('blockDamage').value;
-  const imageFile = document.getElementById('blockImage').files[0];
-  const desc = document.getElementById('blockDesc').value;
-  readFileAsBase64(imageFile,img=>{
-    push(ref(db,'blocks'),{name,life,damage,img,desc});
-    document.getElementById('blockName').value='';
-    document.getElementById('blockLife').value='';
-    document.getElementById('blockDamage').value='';
-    document.getElementById('blockImage').value='';
-    document.getElementById('blockDesc').value='';
+function loadKargolar(){
+  const kargoList = document.getElementById('kargo-list');
+  kargoList.innerHTML='';
+  onValue(ref(db,'kargolar'), snap=>{
+    kargoList.innerHTML='';
+    snap.forEach(child=>{
+      const data = child.val();
+      const div = document.createElement('div');
+      div.className='kargo';
+      div.innerHTML=`<strong>${data.isim}</strong> - Can: ${data.can} - Hasar: ${data.hasar} <br>${data.aciklama}<br>`+
+      (data.resim?`<img src="${data.resim}" class="image-preview">`:'')+
+      (currentUser?.email===adminEmail?`<button onclick="removeItem('kargolar','${child.key}')">Sil</button>`:'');
+      kargoList.appendChild(div);
+    });
   });
 }
 
 // Map
-window.addMap = function(){
-  const name = document.getElementById('mapName').value;
-  const imageFile = document.getElementById('mapImage').files[0];
-  const desc = document.getElementById('mapDesc').value;
-  readFileAsBase64(imageFile,img=>{
-    push(ref(db,'maps'),{name,img,desc});
-    document.getElementById('mapName').value='';
-    document.getElementById('mapImage').value='';
-    document.getElementById('mapDesc').value='';
-  });
-}
-
-// Comment
-window.addComment = function(){
-  const text = document.getElementById('commentText').value;
-  push(ref(db,'comments'),{text});
-  document.getElementById('commentText').value='';
-}
-
-function loadAllData(){
-  // Cargos
-  onValue(ref(db,'cargos'),snap=>{
-    const container = document.getElementById('cargoList');
-    container.innerHTML='';
-    snap.forEach(s=>{
-      const val = s.val();
-      const div = document.createElement('div');
-      div.className='cargo';
-      div.innerHTML=`<strong>${val.name}</strong><br>Can: ${val.life} Hasar: ${val.damage}<br>${val.desc}<br>${val.img?'<img src="'+val.img+'">':''}`;
-      if(auth.currentUser.email===adminEmail){
-        const btn = document.createElement('button');
-        btn.textContent='Sil';
-        btn.onclick=()=>remove(ref(db,'cargos/'+s.key));
-        div.appendChild(btn);
-      }
-      container.appendChild(div);
+function addMap(){
+  const isim = document.getElementById('map-isim').value;
+  const resimFile = document.getElementById('map-resim').files[0];
+  const aciklama = document.getElementById('map-aciklama').value;
+  if(!isim) return alert("İsim gerekli");
+  if(resimFile){
+    fileToBase64(resimFile, base64=>{
+      const mapRef = push(ref(db,'maplar'));
+      set(mapRef,{isim,resim:base64,aciklama});
     });
-  });
-
-  // Blocks
-  onValue(ref(db,'blocks'),snap=>{
-    const container = document.getElementById('blockList');
-    container.innerHTML='';
-    snap.forEach(s=>{
-      const val = s.val();
-      const div = document.createElement('div');
-      div.className='block';
-      div.innerHTML=`<strong>${val.name}</strong><br>Can: ${val.life} Hasar: ${val.damage}<br>${val.desc}<br>${val.img?'<img src="'+val.img+'">':''}`;
-      if(auth.currentUser.email===adminEmail){
-        const btn = document.createElement('button');
-        btn.textContent='Sil';
-        btn.onclick=()=>remove(ref(db,'blocks/'+s.key));
-        div.appendChild(btn);
-      }
-      container.appendChild(div);
-    });
-  });
-
-  // Maps
-  onValue(ref(db,'maps'),snap=>{
-    const container = document.getElementById('mapList');
-    container.innerHTML='';
-    snap.forEach(s=>{
-      const val = s.val();
+  } else {
+    const mapRef = push(ref(db,'maplar'));
+    set(mapRef,{isim,resim:'',aciklama});
+  }
+}
+function loadMaps(){
+  const mapList = document.getElementById('map-list');
+  mapList.innerHTML='';
+  onValue(ref(db,'maplar'), snap=>{
+    mapList.innerHTML='';
+    snap.forEach(child=>{
+      const data = child.val();
       const div = document.createElement('div');
       div.className='map';
-      div.innerHTML=`<strong>${val.name}</strong><br>${val.desc}<br>${val.img?'<img src="'+val.img+'">':''}`;
-      if(auth.currentUser.email===adminEmail){
-        const btn = document.createElement('button');
-        btn.textContent='Sil';
-        btn.onclick=()=>remove(ref(db,'maps/'+s.key));
-        div.appendChild(btn);
-      }
-      container.appendChild(div);
-    });
-  });
-
-  // Comments
-  onValue(ref(db,'comments'),snap=>{
-    const container = document.getElementById('commentList');
-    container.innerHTML='';
-    snap.forEach(s=>{
-      const val = s.val();
-      const div = document.createElement('div');
-      div.textContent=val.text;
-      if(auth.currentUser.email===adminEmail){
-        const btn = document.createElement('button');
-        btn.textContent='Sil';
-        btn.onclick=()=>remove(ref(db,'comments/'+s.key));
-        div.appendChild(btn);
-      }
-      container.appendChild(div);
+      div.innerHTML=`<strong>${data.isim}</strong><br>${data.aciklama}<br>`+
+      (data.resim?`<img src="${data.resim}" class="image-preview">`:'')+
+      (currentUser?.email===adminEmail?`<button onclick="removeItem('maplar','${child.key}')">Sil</button>`:'');
+      mapList.appendChild(div);
     });
   });
 }
+
+// Block
+function addBlock(){
+  const isim = document.getElementById('block-isim').value;
+  const can = document.getElementById('block-can').value;
+  const hasar = document.getElementById('block-hasar').value;
+  const resimFile = document.getElementById('block-resim').files[0];
+  const aciklama = document.getElementById('block-aciklama').value;
+  if(!isim) return alert("İsim gerekli");
+  if(resimFile){
+    fileToBase64(resimFile, base64=>{
+      const blockRef = push(ref(db,'blocklar'));
+      set(blockRef,{isim,can,hasar,resim:base64,aciklama});
+    });
+  } else {
+    const blockRef = push(ref(db,'blocklar'));
+    set(blockRef,{isim,can,hasar,resim:'',aciklama});
+  }
+}
+function loadBlocks(){
+  const blockList = document.getElementById('block-list');
+  blockList.innerHTML='';
+  onValue(ref(db,'blocklar'), snap=>{
+    blockList.innerHTML='';
+    snap.forEach(child=>{
+      const data = child.val();
+      const div = document.createElement('div');
+      div.className='block';
+      div.innerHTML=`<strong>${data.isim}</strong> - Can: ${data.can} - Hasar: ${data.hasar}<br>${data.aciklama}<br>`+
+      (data.resim?`<img src="${data.resim}" class="image-preview">`:'')+
+      (currentUser?.email===adminEmail?`<button onclick="removeItem('blocklar','${child.key}')">Sil</button>`:'');
+      blockList.appendChild(div);
+    });
+  });
+}
+
+// Yorumlar
+function addYorum(){
+  const text = document.getElementById('yorum-text').value;
+  if(!text) return;
+  const yorumRef = push(ref(db,'yorumlar'));
+  set(yorumRef,{text,user:currentUser.email});
+  document.getElementById('yorum-text').value='';
+}
+function loadYorumlar(){
+  const yorumList = document.getElementById('yorum-list');
+  yorumList.innerHTML='';
+  onValue(ref(db,'yorumlar'), snap=>{
+    yorumList.innerHTML='';
+    snap.forEach(child=>{
+      const data = child.val();
+      const div = document.createElement('div');
+      div.className='yorum';
+      div.innerHTML=`<strong>${data.user}</strong>: ${data.text}`+
+      (currentUser?.email===adminEmail?` <button onclick="removeItem('yorumlar','${child.key}')">Sil</button>`:'');
+      yorumList.appendChild(div);
+    });
+  });
+}
+
+// Silme işlemi (admin)
+function removeItem(collection,key){
+  if(confirm('Silmek istediğine emin misin?')){
+    remove(ref(db,`${collection}/${key}`));
+  }
+}
 </script>
+
 </body>
 </html>
