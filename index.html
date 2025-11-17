@@ -9,27 +9,33 @@
     <!-- Inter Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
-        .wiki-card { background-color: white; border: 1px solid #e0e7ff; }
+        /* Modern ve yumuşak arayüz stili */
+        body { font-family: 'Inter', sans-serif; background-color: #f0f4f8; }
+        .wiki-card { background-color: white; border: 1px solid #e2e8f0; transition: all 0.3s; }
+        .wiki-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
         .btn-primary { background-color: #4f46e5; transition: background-color 0.2s; }
         .btn-primary:hover { background-color: #4338ca; }
         .btn-danger { background-color: #ef4444; transition: background-color 0.2s; }
         .btn-danger:hover { background-color: #dc2626; }
-        .comment-box { border-left: 3px solid #6366f1; padding-left: 1rem; }
+        .comment-box { border-left: 4px solid #6366f1; padding-left: 1rem; }
         .page-content { display: none; }
-        /* Placeholder for a simple profile icon */
-        .profile-icon {
-            width: 32px;
-            height: 32px;
-            background-color: #a78bfa;
-            color: white;
-            border-radius: 9999px;
+
+        /* Mobil Uyumlu Başlık ve Navigasyon */
+        .header-container {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.875rem;
-            cursor: pointer;
+            flex-direction: column;
+        }
+        @media (min-width: 768px) {
+            .header-container {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+        /* Admin İçerik Formu Stil Ayarı */
+        #admin-controls input[type="text"], #admin-controls textarea, #admin-controls select {
+            border-radius: 0.5rem;
+            border-color: #d1d5db;
         }
     </style>
     <!-- Firebase SDK'ları -->
@@ -39,29 +45,46 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
+    <!-- 1️⃣ Custom Modal (Onay ve Mesaj Kutusu) -->
+    <div id="custom-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 hidden items-center justify-center p-4" onclick="closeModal(event)">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm transform transition-all" onclick="event.stopPropagation()">
+            <h3 id="modal-title" class="text-xl font-bold mb-4 text-gray-800"></h3>
+            <p id="modal-body" class="text-gray-600 mb-6"></p>
+            <div id="modal-actions" class="flex justify-end space-x-3">
+                <button onclick="closeModal()" id="modal-cancel" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition">İptal</button>
+                <button onclick="modalCallback()" id="modal-confirm" class="btn-danger text-white px-4 py-2 rounded-lg font-medium transition">Onayla</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Ana Konteyner -->
-    <div id="app" class="flex-grow p-4 md:p-8 max-w-5xl mx-auto w-full">
+    <div id="app" class="flex-grow p-4 md:p-8 max-w-6xl mx-auto w-full">
 
         <!-- Başlık ve Navigasyon -->
-        <header class="bg-indigo-700 text-white p-4 rounded-lg shadow-xl mb-6 flex justify-between items-center flex-wrap">
-            <h1 class="text-2xl font-bold" data-i18n="wikiTitle">YarReboarded Wiki</h1>
-            
-            <div class="flex items-center space-x-4 mt-2 md:mt-0">
-                <!-- Dil Seçici -->
-                <select id="lang-selector" onchange="setLanguage(this.value)" class="bg-indigo-600 border border-indigo-500 text-white rounded-lg p-1 text-sm cursor-pointer">
-                    <option value="tr">TR</option>
-                    <option value="en">EN</option>
-                </select>
-
-                <!-- Ana Navigasyon -->
-                <nav id="main-nav" class="flex space-x-4">
-                    <button onclick="showPage('wiki')" class="hover:text-indigo-200 transition" data-i18n="home">Wiki Anasayfa</button>
-                    <button id="admin-link" onclick="showPage('admin')" class="hidden hover:text-indigo-200 transition" data-i18n="adminPanel">Admin Paneli</button>
-                </nav>
+        <header class="bg-indigo-700 text-white p-4 rounded-xl shadow-2xl mb-8 header-container">
+            <div class="flex items-center justify-between w-full md:w-auto mb-4 md:mb-0">
+                <h1 class="text-3xl font-extrabold tracking-tight" data-i18n="wikiTitle">YarReboarded Wiki</h1>
             </div>
 
-            <!-- Kimlik Doğrulama Durumu (Profil ve Giriş/Çıkış Butonu) -->
-            <div id="auth-status" class="mt-4 md:mt-0 flex items-center space-x-3">
+            <div class="flex flex-col md:flex-row md:items-center md:space-x-6 w-full md:w-auto">
+                <!-- Ana Navigasyon -->
+                <nav id="main-nav" class="flex space-x-4 mb-3 md:mb-0 text-sm md:text-base">
+                    <button onclick="showPage('wiki')" class="hover:text-indigo-200 transition font-medium border-b-2 border-transparent hover:border-indigo-200 pb-1" data-i18n="home">Wiki Anasayfa</button>
+                    <button id="admin-link" onclick="showPage('admin')" class="hidden hover:text-indigo-200 transition font-medium border-b-2 border-transparent hover:border-indigo-200 pb-1" data-i18n="adminPanel">Admin Paneli</button>
+                </nav>
+
+                <div class="flex items-center space-x-3">
+                    <!-- Dil Seçici -->
+                    <select id="lang-selector" onchange="setLanguage(this.value)" class="bg-indigo-600 border border-indigo-500 text-white rounded-lg p-1 text-sm cursor-pointer hover:bg-indigo-500">
+                        <option value="tr">TR</option>
+                        <option value="en">EN</option>
+                    </select>
+
+                    <!-- Kimlik Doğrulama Durumu (Profil ve Giriş/Çıkış Butonu) -->
+                    <div id="auth-status" class="flex items-center space-x-3">
+                        <!-- Buraya dinamik olarak Giriş/Çıkış butonu gelecek -->
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -70,81 +93,97 @@
 
             <!-- Wiki Ana Sayfası (Varsayılan Görünüm) -->
             <section id="page-wiki" class="page-content hidden block">
-                <h2 class="text-3xl font-semibold text-gray-800 mb-6 border-b pb-2" data-i18n="wikiContents">Wiki İçerikleri</h2>
-                <div id="wiki-category-selector" class="flex space-x-3 mb-6">
-                    <button onclick="loadWikiContent('blocks')" class="btn-primary text-white px-4 py-2 rounded-lg font-medium shadow-md" data-i18n="blocks">Blocks</button>
-                    <button onclick="loadWikiContent('cargoes')" class="btn-primary text-white px-4 py-2 rounded-lg font-medium shadow-md" data-i18n="cargoes">Kargolar</button>
-                    <button onclick="loadWikiContent('maps')" class="btn-primary text-white px-4 py-2 rounded-lg font-medium shadow-md" data-i18n="maps">Haritalar</button>
+                <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b pb-2">
+                    <span data-i18n="wikiContents">Wiki İçerikleri</span>
+                    <span id="current-category-title" class="text-indigo-600 ml-2"></span>
+                </h2>
+                
+                <!-- Kategori Seçici -->
+                <div id="wiki-category-selector" class="flex flex-wrap gap-3 mb-8">
+                    <button onclick="loadWikiContent('blocks')" data-category="blocks" class="btn-primary text-white px-5 py-2 rounded-full font-semibold shadow-lg hover:shadow-xl" data-i18n="blocks">Blocks</button>
+                    <button onclick="loadWikiContent('cargoes')" data-category="cargoes" class="btn-primary text-white px-5 py-2 rounded-full font-semibold shadow-lg hover:shadow-xl" data-i18n="cargoes">Kargolar</button>
+                    <button onclick="loadWikiContent('maps')" data-category="maps" class="btn-primary text-white px-5 py-2 rounded-full font-semibold shadow-lg hover:shadow-xl" data-i18n="maps">Haritalar</button>
                 </div>
 
-                <div id="wiki-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div id="wiki-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     <p class="text-center col-span-full text-gray-500" data-i18n="selectCategory">Lütfen bir kategori seçin.</p>
                 </div>
             </section>
 
             <!-- İçerik Detay Sayfası -->
             <section id="page-detail" class="page-content hidden block">
-                <button onclick="showPage('wiki')" class="text-indigo-600 hover:underline mb-4 flex items-center">
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                <button onclick="showPage('wiki')" class="text-indigo-600 hover:text-indigo-800 transition mb-6 flex items-center font-medium">
+                    <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                     <span data-i18n="back">Geri Dön</span>
                 </button>
-                <div id="detail-content" class="wiki-card p-6 rounded-xl shadow-lg">
+
+                <div id="detail-content" class="wiki-card p-6 md:p-10 rounded-xl shadow-xl">
                 </div>
                 
                 <!-- Yorumlar Bölümü -->
-                <div class="mt-8">
-                    <h3 class="text-2xl font-semibold mb-4 text-gray-800" data-i18n="comments">Yorumlar</h3>
+                <div class="mt-10 p-6 bg-white rounded-xl shadow-lg">
+                    <h3 class="text-2xl font-bold mb-4 text-gray-800" data-i18n="comments">Yorumlar</h3>
                     <div id="comments-list" class="space-y-4 mb-6">
                         <p id="no-comments-message" class="text-gray-500" data-i18n="noComments">Henüz yorum yok.</p>
                     </div>
 
                     <!-- Yorum Ekle Formu (Giriş Yapmış Kullanıcılara Özel) -->
-                    <div id="comment-form-container" class="hidden">
+                    <div id="comment-form-container" class="hidden border-t pt-4">
                         <textarea id="comment-text" rows="3" data-i18n-placeholder="writeCommentPlaceholder" placeholder="Yorumunuzu buraya yazın..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"></textarea>
-                        <button onclick="addComment()" class="btn-primary text-white px-4 py-2 rounded-lg mt-2 font-medium" data-i18n="addComment">Yorum Ekle</button>
+                        <button onclick="addComment()" class="btn-primary text-white px-4 py-2 rounded-lg mt-3 font-medium hover:shadow-md" data-i18n="addComment">Yorum Ekle</button>
                     </div>
 
                     <!-- Giriş Yapma Uyarısı (Giriş Yapılmamış Kullanıcılara Özel) -->
-                    <p id="comment-login-message" class="text-red-500 hidden font-medium p-3 bg-red-50 rounded-lg" data-i18n="loginToComment">Yorum eklemek için giriş yapmalısınız.</p>
+                    <p id="comment-login-message" class="text-red-600 hidden font-semibold p-3 bg-red-100 rounded-lg text-center" data-i18n="loginToComment">Yorum eklemek için giriş yapmalısınız.</p>
                 </div>
             </section>
 
             <!-- Giriş / Kayıt Formu -->
             <section id="page-auth" class="page-content hidden flex justify-center items-center h-[70vh]">
-                <div class="wiki-card p-8 rounded-xl shadow-lg w-full max-w-md">
-                    <h2 class="text-3xl font-semibold text-gray-800 mb-6" data-i18n="loginSignUp">Giriş / Kayıt</h2>
-                    <form id="auth-form" class="space-y-4">
-                        <input type="email" id="auth-email" data-i18n-placeholder="emailPlaceholder" placeholder="E-posta" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                        <input type="password" id="auth-password" data-i18n-placeholder="passwordPlaceholder" placeholder="Şifre" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                        <button type="submit" class="w-full btn-primary text-white py-3 rounded-lg font-semibold" data-i18n="login">Giriş Yap</button>
-                        <button type="button" onclick="handleSignUp()" class="w-full bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition" data-i18n="signUp">Kayıt Ol</button>
-                        <p id="auth-message" class="text-sm text-red-500 mt-2"></p>
+                <div class="wiki-card p-8 rounded-xl shadow-2xl w-full max-w-md">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-8 text-center" data-i18n="loginSignUp">Giriş / Kayıt</h2>
+                    <form id="auth-form" class="space-y-6">
+                        <input type="email" id="auth-email" data-i18n-placeholder="emailPlaceholder" placeholder="E-posta" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm">
+                        <input type="password" id="auth-password" data-i18n-placeholder="passwordPlaceholder" placeholder="Şifre" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm">
+                        <button type="submit" class="w-full btn-primary text-white py-3 rounded-lg font-bold text-lg shadow-md hover:shadow-lg" data-i18n="login">Giriş Yap</button>
+                        <button type="button" onclick="handleSignUp()" class="w-full bg-gray-200 text-gray-700 py-3 rounded-lg font-bold text-lg hover:bg-gray-300 transition shadow-md" data-i18n="signUp">Kayıt Ol</button>
+                        <p id="auth-message" class="text-sm text-center mt-4"></p>
                     </form>
                 </div>
             </section>
 
             <!-- Admin Paneli -->
             <section id="page-admin" class="page-content hidden">
-                <div class="wiki-card p-6 rounded-xl shadow-lg">
-                    <h2 class="text-3xl font-semibold text-gray-800 mb-6 border-b pb-2" data-i18n="adminPanel">Admin Paneli</h2>
-                    <p id="admin-message" class="text-red-500 hidden mb-4" data-i18n="adminAccessOnly">Bu sayfaya sadece Admin erişebilir.</p>
+                <div class="wiki-card p-6 md:p-8 rounded-xl shadow-xl">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-8 border-b pb-2" data-i18n="adminPanel">Admin Paneli</h2>
+                    <p id="admin-message" class="text-red-500 hidden mb-6 font-medium p-3 bg-red-100 rounded-lg" data-i18n="adminAccessOnly">Bu sayfaya sadece Admin erişebilir.</p>
 
                     <div id="admin-controls" class="hidden space-y-6">
-                        <div class="space-y-4">
-                            <h3 class="text-xl font-semibold text-gray-700" data-i18n="addContent">Yeni İçerik Ekle</h3>
-                            <select id="content-type" class="w-full p-3 border border-gray-300 rounded-lg">
+                        <div class="space-y-4 p-5 bg-indigo-50 rounded-xl border border-indigo-200">
+                            <h3 class="text-xl font-bold text-indigo-700 border-b pb-2" data-i18n="addContent">Yeni İçerik Ekle</h3>
+                            
+                            <!-- Kategori ve Başlık -->
+                            <select id="content-type" class="w-full p-3 border rounded-lg shadow-sm">
                                 <option value="blocks" data-i18n="blocks">Block</option>
                                 <option value="cargoes" data-i18n="cargoes">Kargo</option>
                                 <option value="maps" data-i18n="maps">Harita</option>
                             </select>
-                            <input type="text" id="content-title" data-i18n-placeholder="title" placeholder="Başlık" required class="w-full p-3 border border-gray-300 rounded-lg">
-                            <textarea id="content-text" rows="5" data-i18n-placeholder="contentText" placeholder="İçerik Metni" required class="w-full p-3 border border-gray-300 rounded-lg"></textarea>
-                            <label class="block text-sm font-medium text-gray-700" data-i18n="imageBase64">Görüntü (Base64)</label>
-                            <input type="file" id="content-image-input" accept="image/*" class="w-full p-3 border border-gray-300 rounded-lg">
-                            <input type="hidden" id="content-base64-image">
-                            <button onclick="handleImageUpload()" class="btn-primary text-white px-4 py-2 rounded-lg font-medium mb-3" data-i18n="convertImage">Görseli Dönüştür (Base64)</button>
-                            <button onclick="saveContent()" class="w-full btn-primary text-white py-3 rounded-lg font-semibold" data-i18n="saveContent">İçeriği Kaydet</button>
-                            <p id="save-status" class="text-sm text-green-600 mt-2"></p>
+                            <input type="text" id="content-title" data-i18n-placeholder="title" placeholder="Başlık" required class="w-full p-3 border rounded-lg shadow-sm">
+                            
+                            <!-- İçerik Metni -->
+                            <textarea id="content-text" rows="8" data-i18n-placeholder="contentText" placeholder="İçerik Metni (Markdown veya düz metin kullanabilirsiniz)" required class="w-full p-3 border rounded-lg shadow-sm resize-y"></textarea>
+                            
+                            <!-- Görsel Yükleme -->
+                            <div class="pt-4 border-t border-indigo-200">
+                                <label class="block text-sm font-medium text-gray-700 mb-2" data-i18n="imageBase64">Görüntü (Max 5MB)</label>
+                                <input type="file" id="content-image-input" accept="image/*" class="w-full p-2 border border-dashed border-gray-400 rounded-lg bg-white">
+                                <input type="hidden" id="content-base64-image">
+                                <button onclick="handleImageUpload()" class="btn-primary text-white px-4 py-2 rounded-lg font-medium mt-3" data-i18n="convertImage">Görseli Dönüştür ve Hazırla</button>
+                            </div>
+
+                            <p id="save-status" class="text-sm mt-4 font-semibold"></p>
+                            
+                            <button onclick="saveContent()" class="w-full btn-primary text-white py-3 rounded-lg font-bold text-lg shadow-lg hover:shadow-xl" data-i18n="saveContent">İçeriği Kaydet</button>
                         </div>
                     </div>
                 </div>
@@ -159,6 +198,7 @@
         const translations = {
             en: {
                 wikiTitle: "YarReboarded Wiki", home: "Wiki Home", adminPanel: "Admin Panel", logout: "Logout", login: "Login", signUp: "Sign Up",
+                guestMode: "Guest Mode", // YENİ
                 wikiContents: "Wiki Contents", blocks: "Blocks", cargoes: "Cargoes", maps: "Maps", selectCategory: "Please select a category.",
                 loadingContent: "Loading content...", contentNotFound: "Content not found.", noContent: "No content found in this category.", back: "Back",
                 viewDetails: "View Details", comments: "Comments", noComments: "No comments yet.", writeCommentPlaceholder: "Write your comment here...",
@@ -170,20 +210,23 @@
                 author: "Author", anonymous: "Anonymous", loginSignUp: "Login / Sign Up", deleteConfirmContent: "Are you sure you want to permanently delete this content?", deleteConfirmComment: "Are you sure you want to delete this comment?",
                 // Admin Status Messages
                 statusSuccessSave: (type) => `${type.toUpperCase()} content successfully saved!`, statusErrorRequired: "Title and Content fields are required.", statusErrorConvert: "Image conversion error.", statusSuccessConvert: "Image prepared as Base64.", statusErrorSize: "Error: Image size must not exceed 5MB.", statusConverting: "Converting image...", statusSelectFile: "Please select a file.", statusLoggingIn: "Logging in...", statusSigningUp: "Signing up...",
+                modalConfirmTitle: "Confirm Action", modalDeleteTitle: "Delete Confirmation", modalOk: "OK", modalCancel: "Cancel",
             },
             tr: {
                 wikiTitle: "YarReboarded Wiki", home: "Wiki Anasayfa", adminPanel: "Admin Paneli", logout: "Çıkış Yap", login: "Giriş Yap", signUp: "Kayıt Ol",
+                guestMode: "Misafir Modu", // YENİ
                 wikiContents: "Wiki İçerikleri", blocks: "Blocks", cargoes: "Kargolar", maps: "Haritalar", selectCategory: "Lütfen bir kategori seçin.",
                 loadingContent: "İçerikler yükleniyor...", contentNotFound: "İçerik bulunamadı.", noContent: "Bu kategoride henüz içerik bulunmamaktadır.", back: "Geri Dön",
                 viewDetails: "Detayları Gör", comments: "Yorumlar", noComments: "Henüz yorum yok.", writeCommentPlaceholder: "Yorumunuzu buraya yazın...",
                 addComment: "Yorum Ekle", loginToComment: "Yorum eklemek için giriş yapmalısınız.", emailPlaceholder: "E-posta",
                 passwordPlaceholder: "Şifre", adminAccessOnly: "Bu sayfaya sadece Admin erişebilir.", addContent: "Yeni İçerik Ekle",
-                title: "Başlık", contentText: "İçerik Metni", imageBase64: "Görüntü (Base64)", convertImage: "Görseli Dönüştür (Base64)",
+                title: "Başlık", contentText: "İçerik Metni", imageBase64: "Görüntü (Base64)", convertImage: "Görseli Dönüştür ve Hazırla",
                 saveContent: "İçeriği Kaydet", loginFailed: "Giriş başarısız:", loginSuccess: "Giriş başarılı!", signingUp: "Kayıt olunuyor...",
                 signUpSuccess: "Kayıt başarılı! Otomatik olarak giriş yapıldı.", delete: "Sil", imageError: "Görsel Yüklenemedi",
                 author: "Yazar", anonymous: "Anonim", loginSignUp: "Giriş / Kayıt", deleteConfirmContent: "Bu içeriği kalıcı olarak silmek istediğinizden emin misiniz?", deleteConfirmComment: "Bu yorumu silmek istediğinizden emin misiniz?",
                 // Admin Status Messages
                 statusSuccessSave: (type) => `${type.toUpperCase()} içeriği başarıyla kaydedildi!`, statusErrorRequired: "Başlık ve İçerik alanları zorunludur.", statusErrorConvert: "Görsel dönüştürme hatası.", statusSuccessConvert: "Görsel Base64 olarak hazırlandı.", statusErrorSize: "Hata: Görsel boyutu 5MB'ı geçmemelidir.", statusConverting: "Görsel dönüştürülüyor...", statusSelectFile: "Lütfen bir dosya seçin.", statusLoggingIn: "Giriş yapılıyor...", statusSigningUp: "Kayıt olunuyor...",
+                modalConfirmTitle: "Eylemi Onayla", modalDeleteTitle: "Silme Onayı", modalOk: "TAMAM", modalCancel: "İptal",
             }
         };
 
@@ -208,21 +251,23 @@
             });
 
             // 3. Special Text (like select options)
-            document.getElementById('content-type').querySelectorAll('option').forEach(option => {
+            document.getElementById('content-type')?.querySelectorAll('option').forEach(option => {
                 const key = option.getAttribute('data-i18n');
                 if (current[key]) {
                     option.textContent = current[key];
                 }
             });
+            
+            // 4. Modal
+            document.getElementById('modal-cancel').textContent = current.modalCancel;
+            document.getElementById('modal-confirm').textContent = current.modalOk;
 
-            // 4. Update dynamic content based on the current page view
-            const adminMessage = document.getElementById('admin-message');
-            if(adminMessage && adminMessage.classList.contains('block') && !isAdmin) {
-                adminMessage.textContent = current.adminAccessOnly;
-            }
-            const loginMessage = document.getElementById('comment-login-message');
-            if(loginMessage && loginMessage.classList.contains('block') && !currentUser) {
-                loginMessage.textContent = current.loginToComment;
+            // 5. Kategori Başlığını Güncelle
+            const selectedButton = document.querySelector(`#wiki-category-selector button[data-category="${currentCategory}"]`);
+            if (selectedButton) {
+                 document.getElementById('current-category-title').textContent = selectedButton.textContent;
+            } else {
+                 document.getElementById('current-category-title').textContent = '';
             }
         }
 
@@ -231,9 +276,11 @@
             document.documentElement.lang = newLang;
             translateUI();
             
-            // Listeyi yeniden yükleyerek kartlardaki dinamik metinleri (yorum sayısı vb.) güncelleyebiliriz.
+            // Dinamik içerikleri güncelle
             if (document.getElementById('page-wiki').classList.contains('block')) {
                  loadWikiContent(currentCategory);
+            } else if (document.getElementById('page-detail').classList.contains('block') && currentContentPath) {
+                 showDetail(currentContentPath); 
             }
         }
 
@@ -249,6 +296,11 @@
             measurementId: "G-KCDR6CW19E"
         };
         const adminEmail = "selimhanlafci121@gmail.com";
+        
+        // YENİ: Misafir Hesabı Bilgileri
+        const GUEST_EMAIL = "selimhanlafci008@gmail.com";
+        const GUEST_PASSWORD = "selam..lok";
+
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -265,7 +317,63 @@
         let currentContentPath = null; 
 
         // ----------------------------------------------------------------------
-        // 4️⃣ Kimlik Doğrulama (Auth) İşlemleri
+        // 4️⃣ Custom Modal İşlemleri
+        // ----------------------------------------------------------------------
+
+        let resolveModalPromise = null;
+
+        /**
+         * Kullanıcıya özel onay/mesaj kutusu gösterir.
+         * @param {string} title - Modal başlığı
+         * @param {string} body - Modal içeriği
+         * @param {boolean} isConfirm - Onay (true) veya sadece mesaj (false) olup olmadığı
+         * @returns {Promise<boolean>} Sadece isConfirm true ise kullanılır.
+         */
+        function showModal(title, body, isConfirm = false) {
+            const modal = document.getElementById('custom-modal');
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-body').textContent = body;
+            const actions = document.getElementById('modal-actions');
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            if (isConfirm) {
+                document.getElementById('modal-cancel').classList.remove('hidden');
+                document.getElementById('modal-confirm').textContent = translations[lang].modalOk;
+                document.getElementById('modal-confirm').className = "btn-danger text-white px-4 py-2 rounded-lg font-medium transition"; // Silme için Kırmızı
+                return new Promise(resolve => {
+                    resolveModalPromise = resolve;
+                });
+            } else {
+                document.getElementById('modal-cancel').classList.add('hidden');
+                document.getElementById('modal-confirm').textContent = translations[lang].modalOk;
+                document.getElementById('modal-confirm').className = "btn-primary text-white px-4 py-2 rounded-lg font-medium transition"; // Bilgi için Mavi
+                return Promise.resolve(true); 
+            }
+        }
+
+        function closeModal(event) {
+            if (event && event.target.id !== 'custom-modal') return; 
+            document.getElementById('custom-modal').classList.add('hidden');
+            document.getElementById('custom-modal').classList.remove('flex');
+            if (resolveModalPromise) {
+                resolveModalPromise(false); // İptal veya dışarı tıklama
+                resolveModalPromise = null;
+            }
+        }
+
+        function modalCallback() {
+            document.getElementById('custom-modal').classList.add('hidden');
+            document.getElementById('custom-modal').classList.remove('flex');
+            if (resolveModalPromise) {
+                resolveModalPromise(true); // Onaylama
+                resolveModalPromise = null;
+            }
+        }
+
+        // ----------------------------------------------------------------------
+        // 5️⃣ Kimlik Doğrulama (Auth) İşlemleri
         // ----------------------------------------------------------------------
 
         onAuthStateChanged(auth, (user) => {
@@ -274,9 +382,11 @@
             console.log(`[AUTH] User state changed. Logged In: ${!!user}, Admin: ${isAdmin}`);
             updateUI();
             
-            // Yorumların veya kartların dinamik durumunu güncellemek için
+            // Listeyi ve yorumları güncellediğimizden emin ol
             if (document.getElementById('page-wiki').classList.contains('block')) {
                 loadWikiContent(currentCategory);
+            } else if (document.getElementById('page-detail').classList.contains('block') && currentContentPath) {
+                 showDetail(currentContentPath); 
             }
         });
 
@@ -287,6 +397,8 @@
             const adminLink = document.getElementById('admin-link');
             const commentFormContainer = document.getElementById('comment-form-container');
             const commentLoginMessage = document.getElementById('comment-login-message');
+            
+            authStatusDiv.innerHTML = ''; // Temizle
 
             if (currentUser) {
                 // Giriş Yapılmış Durum
@@ -296,19 +408,19 @@
                 authStatusDiv.innerHTML = `
                     <div class="flex items-center space-x-2">
                         <span class="text-sm font-medium text-indigo-200 hidden sm:inline">${userName}</span>
-                        <div class="profile-icon">${initials}</div>
+                        <div class="w-8 h-8 bg-purple-500 text-white rounded-full flex items-center justify-center font-bold text-sm cursor-pointer" title="${currentUser.email}">${initials}</div>
                     </div>
-                    <button onclick="handleSignOut()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-full text-sm font-medium transition" data-i18n="logout">${current.logout}</button>
+                    <button onclick="handleSignOut()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-full text-sm font-medium transition shadow-md" data-i18n="logout">${current.logout}</button>
                 `;
-                // Yorum Ekleme aktif
                 commentFormContainer.classList.remove('hidden');
                 commentLoginMessage.classList.add('hidden');
             } else {
                 // Giriş Yapılmamış Durum
                 authStatusDiv.innerHTML = `
-                    <button onclick="showPage('auth')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded-full text-sm font-medium transition" data-i18n="login">${current.login}</button>
+                    <button onclick="showPage('auth')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-full text-sm font-medium transition shadow-md" data-i18n="login">${current.login}</button>
+                    <!-- YENİ MİSAFİR MODU BUTONU -->
+                    <button onclick="handleGuestLogin()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-full text-sm font-medium transition shadow-md" data-i18n="guestMode">${current.guestMode}</button>
                 `;
-                // Yorum Ekleme kısıtlı
                 commentFormContainer.classList.add('hidden');
                 commentLoginMessage.classList.remove('hidden');
             }
@@ -318,9 +430,29 @@
             } else {
                 adminLink.classList.add('hidden');
             }
-            // Çeviriyi yeniden uygula
             translateUI();
         }
+        
+        // YENİ: Misafir Modu Giriş Fonksiyonu
+        async function handleGuestLogin() {
+            const current = translations[lang];
+            const authStatusDiv = document.getElementById('auth-status');
+            const originalButtons = authStatusDiv.innerHTML; // Butonları kaydet
+            authStatusDiv.innerHTML = `<span class="text-white animate-pulse">${current.statusLoggingIn}...</span>`;
+
+            try {
+                // Belirtilen misafir hesabı ile giriş yap
+                await signInWithEmailAndPassword(auth, GUEST_EMAIL, GUEST_PASSWORD);
+                // Başarılı giriş sonrası onAuthStateChanged zaten updateUI() fonksiyonunu tetikleyecek.
+            } catch (error) {
+                console.error("Misafir Giriş Hatası:", error);
+                // Hata durumunda UI'yı eski haline getir
+                authStatusDiv.innerHTML = originalButtons;
+                // Hata mesajı göster
+                showModal(current.loginFailed, error.message, false);
+            }
+        }
+
 
         document.getElementById('auth-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -329,18 +461,19 @@
             const password = document.getElementById('auth-password').value;
             const messageEl = document.getElementById('auth-message');
             messageEl.textContent = current.statusLoggingIn;
+            messageEl.className = 'text-sm text-center mt-4 text-gray-500';
 
             try {
                 await signInWithEmailAndPassword(auth, email, password);
                 messageEl.textContent = current.loginSuccess;
                 messageEl.classList.remove('text-red-500');
-                messageEl.classList.add('text-green-500');
-                setTimeout(() => showPage('wiki'), 500); 
+                messageEl.classList.add('text-green-600', 'font-bold');
+                setTimeout(() => showPage('wiki'), 800); 
             } catch (error) {
                 console.error("Giriş hatası:", error);
                 messageEl.textContent = `${current.loginFailed} ${error.message}`;
-                messageEl.classList.add('text-red-500');
-                messageEl.classList.remove('text-green-500');
+                messageEl.classList.add('text-red-600', 'font-bold');
+                messageEl.classList.remove('text-green-600');
             }
         });
 
@@ -350,18 +483,20 @@
             const password = document.getElementById('auth-password').value;
             const messageEl = document.getElementById('auth-message');
             messageEl.textContent = current.statusSigningUp;
+            messageEl.className = 'text-sm text-center mt-4 text-gray-500';
+
 
             try {
                 await createUserWithEmailAndPassword(auth, email, password);
                 messageEl.textContent = current.signUpSuccess;
                 messageEl.classList.remove('text-red-500');
-                messageEl.classList.add('text-green-500');
-                setTimeout(() => showPage('wiki'), 500);
+                messageEl.classList.add('text-green-600', 'font-bold');
+                setTimeout(() => showPage('wiki'), 800);
             } catch (error) {
                 console.error("Kayıt hatası:", error);
                 messageEl.textContent = `${current.loginFailed} ${error.message}`;
-                messageEl.classList.add('text-red-500');
-                messageEl.classList.remove('text-green-500');
+                messageEl.classList.add('text-red-600', 'font-bold');
+                messageEl.classList.remove('text-green-600');
             }
         }
 
@@ -372,7 +507,7 @@
         }
 
         // ----------------------------------------------------------------------
-        // 5️⃣ Sayfa ve Navigasyon İşlemleri
+        // 6️⃣ Sayfa ve Navigasyon İşlemleri
         // ----------------------------------------------------------------------
 
         function showPage(pageId) {
@@ -385,7 +520,7 @@
             if (targetPage) {
                 targetPage.classList.remove('hidden');
                 if (pageId === 'auth') {
-                    targetPage.classList.add('flex', 'flex-col', 'items-center', 'justify-center');
+                    targetPage.classList.add('flex');
                 } else {
                      targetPage.classList.add('block');
                 }
@@ -409,36 +544,36 @@
 
 
         // ----------------------------------------------------------------------
-        // 6️⃣ Wiki İçerik Görüntüleme ve Yorum İşlemleri (Tümü Halka Açık)
+        // 7️⃣ Wiki İçerik Görüntüleme ve Yorum İşlemleri
         // ----------------------------------------------------------------------
 
         function loadWikiContent(category) {
             currentCategory = category;
             const current = translations[lang];
             const listEl = document.getElementById('wiki-list');
-            listEl.innerHTML = `<p class="text-center col-span-full text-gray-500">${current.loadingContent}</p>`;
+            listEl.innerHTML = `<p class="text-center col-span-full text-gray-500 p-8">${current.loadingContent}</p>`;
 
             // Kategori butonu stilini güncelle
             document.querySelectorAll('#wiki-category-selector button').forEach(btn => {
-                const btnKey = btn.getAttribute('data-i18n');
-                if (btnKey === category || (category === 'blocks' && btnKey === 'blocks')) {
-                    btn.classList.add('bg-indigo-600');
+                const cat = btn.getAttribute('data-category');
+                if (cat === category) {
+                    btn.classList.add('bg-indigo-900', 'shadow-2xl');
                     btn.classList.remove('btn-primary');
                 } else {
-                    btn.classList.remove('bg-indigo-600');
+                    btn.classList.remove('bg-indigo-900', 'shadow-2xl');
                     btn.classList.add('btn-primary');
                 }
             });
+            translateUI(); // Kategori başlığını güncellemek için
 
             const contentRef = ref(db, category);
 
-            // onValue, kullanıcı giriş yapsa da yapmasa da veriyi dinleyecektir (Halka Açık İçerik)
             onValue(contentRef, (snapshot) => {
                 const data = snapshot.val();
                 listEl.innerHTML = ''; 
 
                 if (!data) {
-                    listEl.innerHTML = `<p class="text-center col-span-full text-gray-500">${current.noContent}</p>`;
+                    listEl.innerHTML = `<p class="text-center col-span-full text-gray-500 p-8">${current.noContent}</p>`;
                     return;
                 }
 
@@ -447,7 +582,7 @@
                 items.forEach(item => {
                     const commentCount = Object.keys(item.comments || {}).length;
                     const card = document.createElement('div');
-                    card.className = 'wiki-card p-4 rounded-xl shadow-md flex flex-col space-y-3 hover:shadow-lg transition duration-300';
+                    card.className = 'wiki-card p-4 rounded-xl shadow-lg flex flex-col space-y-3';
                     
                     const imageHtml = item.base64Image 
                         ? `<img src="${item.base64Image}" alt="${item.title}" class="w-full h-40 object-cover rounded-lg mb-3" onerror="this.onerror=null; this.src='https://placehold.co/400x160/cbd5e1/475569?text=${current.imageError.replace(/\s/g, '+')}'">`
@@ -455,12 +590,12 @@
                     
                     card.innerHTML = `
                         ${imageHtml}
-                        <h3 class="text-xl font-semibold text-indigo-700">${item.title}</h3>
-                        <p class="text-gray-600 line-clamp-3">${item.content.substring(0, 100)}...</p>
+                        <h3 class="text-xl font-bold text-indigo-700">${item.title}</h3>
+                        <p class="text-gray-600 line-clamp-3 text-sm">${item.content.substring(0, 100)}...</p>
                         <p class="text-xs text-gray-400">${current.author}: ${item.author || current.anonymous}</p>
-                        <div class="flex justify-between items-center mt-auto pt-2 border-t border-gray-100">
-                            <button onclick="showDetail('${item.category}/${item.id}')" class="text-sm font-medium text-indigo-500 hover:text-indigo-700 transition">${current.viewDetails} (${commentCount} ${current.comments})</button>
-                            ${isAdmin ? `<button onclick="deleteContent('${item.category}/${item.id}')" class="btn-danger text-white px-3 py-1 rounded-lg text-xs hover:shadow-md">${current.delete}</button>` : ''}
+                        <div class="flex justify-between items-center mt-auto pt-3 border-t border-gray-100">
+                            <button onclick="showDetail('${item.category}/${item.id}')" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition">${current.viewDetails} (${commentCount})</button>
+                            ${isAdmin ? `<button onclick="confirmDeleteContent('${item.category}/${item.id}')" class="btn-danger text-white px-3 py-1 rounded-lg text-xs hover:shadow-md">${current.delete}</button>` : ''}
                         </div>
                     `;
                     listEl.appendChild(card);
@@ -492,7 +627,7 @@
 
                 detailEl.innerHTML = `
                     <h2 class="text-4xl font-extrabold text-indigo-800 mb-4">${item.title}</h2>
-                    <p class="text-sm text-gray-500 mb-6 border-b pb-4">${current.author}: ${item.author || current.anonymous}</p>
+                    <p class="text-sm text-gray-500 mb-6 border-b pb-4">${current.author}: <span class="font-semibold">${item.author || current.anonymous}</span></p>
                     ${imageHtml}
                     <div class="prose max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap">${item.content}</div>
                 `;
@@ -515,13 +650,13 @@
 
             commentArray.forEach(comment => {
                 const commentEl = document.createElement('div');
-                commentEl.className = 'comment-box bg-indigo-50 p-4 rounded-lg shadow-sm';
+                commentEl.className = 'comment-box bg-indigo-50 p-4 rounded-lg shadow-sm flex justify-between items-start';
                 commentEl.innerHTML = `
-                    <p class="text-gray-700">${comment.text}</p>
-                    <div class="flex justify-between items-center mt-2 pt-2 border-t border-indigo-200">
-                        <span class="text-xs font-medium text-indigo-600">@${comment.user || current.anonymous}</span>
-                        ${isAdmin ? `<button onclick="deleteComment('${comment.id}')" class="text-xs text-red-500 hover:text-red-700 transition">${current.delete}</button>` : ''}
+                    <div>
+                        <p class="text-gray-700 mb-1">${comment.text}</p>
+                        <span class="text-xs font-bold text-indigo-600">@${comment.user.split('@')[0] || current.anonymous}</span>
                     </div>
+                    ${isAdmin ? `<button onclick="confirmDeleteComment('${comment.id}')" class="text-xs text-red-500 hover:text-red-700 transition font-medium p-1 ml-2 rounded hover:bg-red-200">${current.delete}</button>` : ''}
                 `;
                 commentsListEl.appendChild(commentEl);
             });
@@ -533,18 +668,12 @@
             const commentText = commentTextEl.value.trim();
 
             if (!currentUser) {
-                // Hata mesajını konsola ve kullanıcıya görünür alana yazdır.
-                console.error('HATA: Yorum eklemek için giriş yapmalısınız.');
-                const loginMessage = document.getElementById('comment-login-message');
-                loginMessage.textContent = current.loginToComment;
-                loginMessage.classList.remove('hidden');
-                // Formu gizle (UI'da zaten gizli olmalı, bu sadece ekstra güvenlik)
-                document.getElementById('comment-form-container').classList.add('hidden');
+                showModal(current.modalConfirmTitle, current.loginToComment, false);
                 return;
             }
 
             if (!commentText) {
-                console.error('HATA: Yorum metni boş olamaz.');
+                showModal(current.modalConfirmTitle, "Yorum metni boş bırakılamaz.", false);
                 return;
             }
 
@@ -566,44 +695,55 @@
                 console.log('Başarılı: Yorum Realtime Database\'e kaydedildi.');
             } catch (error) {
                 console.error("Yorum ekleme Firebase hatası:", error.message);
+                showModal(current.modalConfirmTitle, "Yorum eklenirken bir hata oluştu: " + error.message, false);
+            }
+        }
+
+        // Silme İşlemleri için Onay Modalları
+        async function confirmDeleteContent(path) {
+            if (!isAdmin) return;
+            const current = translations[lang];
+            const confirmed = await showModal(current.modalDeleteTitle, current.deleteConfirmContent, true);
+            if (confirmed) {
+                await deleteContent(path);
             }
         }
 
         async function deleteContent(path) {
-            if (!isAdmin) {
-                console.error('YETKİSİZ İŞLEM: İçerik silmek için admin yetkisine sahip olmalısınız.');
-                return;
-            }
-            if (!window.confirm(translations[lang].deleteConfirmContent)) return;
             try {
                 await remove(ref(db, path));
-                console.log('Başarılı: İçerik silindi.');
+                showModal(translations[lang].modalConfirmTitle, "İçerik başarıyla silindi.", false);
             } catch (error) {
                 console.error("İçerik silme hatası:", error);
+                showModal(translations[lang].modalConfirmTitle, "Silme işlemi başarısız: " + error.message, false);
+            }
+        }
+
+        async function confirmDeleteComment(commentId) {
+            if (!isAdmin || !currentContentPath) return;
+            const current = translations[lang];
+            const confirmed = await showModal(current.modalDeleteTitle, current.deleteConfirmComment, true);
+            if (confirmed) {
+                await deleteComment(commentId);
             }
         }
 
         async function deleteComment(commentId) {
-            if (!isAdmin) {
-                 console.error('YETKİSİZ İŞLEM: Yorum silmek için admin yetkisine sahip olmalısınız.');
-                 return;
-            }
             if (!currentContentPath) return;
-
-            if (!window.confirm(translations[lang].deleteConfirmComment)) return;
 
             try {
                 const commentPath = `${currentContentPath}/comments/${commentId}`;
                 await remove(ref(db, commentPath));
-                console.log('Başarılı: Yorum silindi.');
+                showModal(translations[lang].modalConfirmTitle, "Yorum başarıyla silindi.", false);
             } catch (error) {
                 console.error("Yorum silme hatası:", error);
+                showModal(translations[lang].modalConfirmTitle, "Silme işlemi başarısız: " + error.message, false);
             }
         }
 
 
         // ----------------------------------------------------------------------
-        // 7️⃣ Admin Paneli İşlemleri
+        // 8️⃣ Admin Paneli İşlemleri
         // ----------------------------------------------------------------------
 
         function handleImageUpload() {
@@ -612,15 +752,13 @@
             const base64Input = document.getElementById('content-base64-image');
             const statusEl = document.getElementById('save-status');
             statusEl.textContent = current.statusConverting;
-            statusEl.classList.remove('text-red-600');
-            statusEl.classList.add('text-green-600');
+            statusEl.className = 'text-sm mt-4 font-semibold text-gray-500';
 
 
             if (file) {
-                if (file.size > 1024 * 1024 * 5) { 
+                if (file.size > 1024 * 1024 * 5) { // 5MB
                     statusEl.textContent = current.statusErrorSize;
-                    statusEl.classList.add('text-red-600');
-                    statusEl.classList.remove('text-green-600');
+                    statusEl.className = 'text-sm mt-4 font-semibold text-red-600';
                     base64Input.value = '';
                     return;
                 }
@@ -629,25 +767,24 @@
                 reader.onload = function(e) {
                     base64Input.value = e.target.result;
                     statusEl.textContent = current.statusSuccessConvert;
+                    statusEl.className = 'text-sm mt-4 font-semibold text-green-600';
                 };
                 reader.onerror = function() {
-                    statusEl.textContent = current.statusErrorConvert;
-                    statusEl.classList.add('text-red-600');
-                    statusEl.classList.remove('text-green-600');
                     base64Input.value = '';
+                    statusEl.textContent = current.statusErrorConvert;
+                    statusEl.className = 'text-sm mt-4 font-semibold text-red-600';
                 };
                 reader.readAsDataURL(file);
             } else {
-                statusEl.textContent = current.statusSelectFile;
-                statusEl.classList.add('text-red-600');
-                statusEl.classList.remove('text-green-600');
                 base64Input.value = '';
+                statusEl.textContent = current.statusSelectFile;
+                statusEl.className = 'text-sm mt-4 font-semibold text-red-600';
             }
         }
 
         async function saveContent() {
             if (!isAdmin) {
-                console.error('YETKİSİZ İŞLEM: İçerik kaydetmek için admin yetkisine sahip olmalısınız.');
+                showModal(translations[lang].modalConfirmTitle, "İçerik kaydetmek için admin yetkisine sahip olmalısınız.", false);
                 return;
             }
 
@@ -661,8 +798,7 @@
 
             if (!title || !content) {
                 statusEl.textContent = current.statusErrorRequired;
-                statusEl.classList.remove('text-green-600');
-                statusEl.classList.add('text-red-600');
+                statusEl.className = 'text-sm mt-4 font-semibold text-red-600';
                 return;
             }
 
@@ -681,8 +817,7 @@
                 await push(contentRef, newWikiItem);
                 
                 statusEl.textContent = current.statusSuccessSave(type);
-                statusEl.classList.remove('text-red-600');
-                statusEl.classList.add('text-green-600');
+                statusEl.className = 'text-sm mt-4 font-semibold text-green-600';
                 
                 document.getElementById('content-title').value = '';
                 document.getElementById('content-text').value = '';
@@ -692,13 +827,11 @@
             } catch (error) {
                 console.error("İçerik kaydetme hatası:", error);
                 statusEl.textContent = 'Kaydetme hatası: ' + error.message;
-                statusEl.classList.remove('text-green-600');
-                statusEl.classList.add('text-red-600');
+                statusEl.className = 'text-sm mt-4 font-semibold text-red-600';
             }
         }
 
         window.onload = () => {
-            // Başlangıç dilini seç
             const initialLang = 'tr'; 
             document.getElementById('lang-selector').value = initialLang;
             setLanguage(initialLang);
@@ -710,14 +843,18 @@
         window.loadWikiContent = loadWikiContent;
         window.showDetail = showDetail;
         window.addComment = addComment;
-        window.deleteContent = deleteContent;
-        window.deleteComment = deleteComment;
+        window.confirmDeleteContent = confirmDeleteContent; 
+        window.confirmDeleteComment = confirmDeleteComment;
         window.handleSignUp = handleSignUp;
         window.handleSignOut = handleSignOut;
         window.handleImageUpload = handleImageUpload;
         window.saveContent = saveContent;
         window.setLanguage = setLanguage;
+        window.closeModal = closeModal;
+        window.modalCallback = modalCallback;
+        window.handleGuestLogin = handleGuestLogin; // YENİ Misafir Modu fonksiyonunu ekle
     </script>
 </body>
 </html>
+
 
