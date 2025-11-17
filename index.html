@@ -15,6 +15,8 @@
         .wiki-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
         .btn-primary { background-color: #4f46e5; transition: background-color 0.2s; }
         .btn-primary:hover { background-color: #4338ca; }
+        .btn-secondary { background-color: #64748b; transition: background-color 0.2s; }
+        .btn-secondary:hover { background-color: #475569; }
         .btn-danger { background-color: #ef4444; transition: background-color 0.2s; }
         .btn-danger:hover { background-color: #dc2626; }
         .comment-box { border-left: 4px solid #6366f1; padding-left: 1rem; }
@@ -130,7 +132,7 @@
                     <!-- Yorum Ekle Formu (Giriş Yapmış Kullanıcılara Özel) -->
                     <div id="comment-form-container" class="hidden border-t pt-4">
                         <textarea id="comment-text" rows="3" data-i18n-placeholder="writeCommentPlaceholder" placeholder="Yorumunuzu buraya yazın..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"></textarea>
-                        <button onclick="addComment()" class="btn-primary text-white px-4 py-2 rounded-lg mt-3 font-medium hover:shadow-md" data-i18n="addComment">Yorum Ekle</button>
+                        <button onclick="addComment()" class="btn-primary text-white px-4 py-2 rounded-lg mt-3 font-medium hover:shadow-md" data-i1s8n="addComment">Yorum Ekle</button>
                     </div>
 
                     <!-- Giriş Yapma Uyarısı (Giriş Yapılmamış Kullanıcılara Özel) -->
@@ -160,7 +162,8 @@
 
                     <div id="admin-controls" class="hidden space-y-6">
                         <div class="space-y-4 p-5 bg-indigo-50 rounded-xl border border-indigo-200">
-                            <h3 class="text-xl font-bold text-indigo-700 border-b pb-2" data-i18n="addContent">Yeni İçerik Ekle</h3>
+                            <!-- YENİ: Dinamik Başlık -->
+                            <h3 id="admin-form-title" class="text-xl font-bold text-indigo-700 border-b pb-2" data-i1s8n="addContent">Yeni İçerik Ekle</h3>
                             
                             <!-- Kategori ve Başlık -->
                             <select id="content-type" class="w-full p-3 border rounded-lg shadow-sm">
@@ -178,12 +181,17 @@
                                 <label class="block text-sm font-medium text-gray-700 mb-2" data-i18n="imageBase64">Görüntü (Max 5MB)</label>
                                 <input type="file" id="content-image-input" accept="image/*" class="w-full p-2 border border-dashed border-gray-400 rounded-lg bg-white">
                                 <input type="hidden" id="content-base64-image">
-                                <button onclick="handleImageUpload()" class="btn-primary text-white px-4 py-2 rounded-lg font-medium mt-3" data-i18n="convertImage">Görseli Dönüştür ve Hazırla</button>
+                                <button onclick="handleImageUpload()" class="btn-primary text-white px-4 py-2 rounded-lg font-medium mt-3" data-i1s8n="convertImage">Görseli Dönüştür ve Hazırla</button>
                             </div>
 
                             <p id="save-status" class="text-sm mt-4 font-semibold"></p>
                             
-                            <button onclick="saveContent()" class="w-full btn-primary text-white py-3 rounded-lg font-bold text-lg shadow-lg hover:shadow-xl" data-i18n="saveContent">İçeriği Kaydet</button>
+                            <!-- YENİ: Düzenleme ID'si için gizli alan -->
+                            <input type="hidden" id="editing-item-path">
+
+                            <button onclick="saveContent()" class="w-full btn-primary text-white py-3 rounded-lg font-bold text-lg shadow-lg hover:shadow-xl" data-i1s8n="saveContent">İçeriği Kaydet</button>
+                            <!-- YENİ: Düzenlemeyi İptal Et Butonu -->
+                            <button type="button" onclick="cancelEdit()" id="cancel-edit-button" class="w-full btn-secondary text-white py-2 rounded-lg font-medium hover:shadow-md mt-2 hidden" data-i1s8n="cancelEdit">Düzenlemeyi İptal Et</button>
                         </div>
                     </div>
                 </div>
@@ -198,34 +206,52 @@
         const translations = {
             en: {
                 wikiTitle: "YarReboarded Wiki", home: "Wiki Home", adminPanel: "Admin Panel", logout: "Logout", login: "Login", signUp: "Sign Up",
-                guestMode: "Guest Mode", // YENİ
+                guestMode: "Guest Mode",
                 wikiContents: "Wiki Contents", blocks: "Blocks", cargoes: "Cargoes", maps: "Maps", selectCategory: "Please select a category.",
                 loadingContent: "Loading content...", contentNotFound: "Content not found.", noContent: "No content found in this category.", back: "Back",
                 viewDetails: "View Details", comments: "Comments", noComments: "No comments yet.", writeCommentPlaceholder: "Write your comment here...",
                 addComment: "Add Comment", loginToComment: "You must be logged in to add a comment.", emailPlaceholder: "Email",
-                passwordPlaceholder: "Password", adminAccessOnly: "Only Admin can access this page.", addContent: "Add New Content",
+                passwordPlaceholder: "Password", adminAccessOnly: "Only Admin can access this page.", 
+                // YENİ: Admin Formu için Çeviriler
+                addContent: "Add New Content", 
+                addEditContent: "Edit Content",
+                cancelEdit: "Cancel Edit",
+                edit: "Edit", 
+                // ---
                 title: "Title", contentText: "Content Text", imageBase64: "Image (Base64)", convertImage: "Convert Image (Base64)",
                 saveContent: "Save Content", loginFailed: "Login failed:", loginSuccess: "Login successful!", signingUp: "Signing up...",
                 signUpSuccess: "Sign up successful! Automatically logged in.", delete: "Delete", imageError: "Image Not Loaded",
                 author: "Author", anonymous: "Anonymous", loginSignUp: "Login / Sign Up", deleteConfirmContent: "Are you sure you want to permanently delete this content?", deleteConfirmComment: "Are you sure you want to delete this comment?",
                 // Admin Status Messages
-                statusSuccessSave: (type) => `${type.toUpperCase()} content successfully saved!`, statusErrorRequired: "Title and Content fields are required.", statusErrorConvert: "Image conversion error.", statusSuccessConvert: "Image prepared as Base64.", statusErrorSize: "Error: Image size must not exceed 5MB.", statusConverting: "Converting image...", statusSelectFile: "Please select a file.", statusLoggingIn: "Logging in...", statusSigningUp: "Signing up...",
+                statusSuccessSave: (type) => `${type.toUpperCase()} content successfully saved!`, 
+                statusSuccessUpdate: "Content successfully updated!",
+                statusLoadingEdit: "Loading content for editing...",
+                statusErrorRequired: "Title and Content fields are required.", statusErrorConvert: "Image conversion error.", statusSuccessConvert: "Image prepared as Base64.", statusErrorSize: "Error: Image size must not exceed 5MB.", statusConverting: "Converting image...", statusSelectFile: "Please select a file.", statusLoggingIn: "Logging in...", statusSigningUp: "Signing up...",
                 modalConfirmTitle: "Confirm Action", modalDeleteTitle: "Delete Confirmation", modalOk: "OK", modalCancel: "Cancel",
             },
             tr: {
                 wikiTitle: "YarReboarded Wiki", home: "Wiki Anasayfa", adminPanel: "Admin Paneli", logout: "Çıkış Yap", login: "Giriş Yap", signUp: "Kayıt Ol",
-                guestMode: "Misafir Modu", // YENİ
+                guestMode: "Misafir Modu",
                 wikiContents: "Wiki İçerikleri", blocks: "Blocks", cargoes: "Kargolar", maps: "Haritalar", selectCategory: "Lütfen bir kategori seçin.",
                 loadingContent: "İçerikler yükleniyor...", contentNotFound: "İçerik bulunamadı.", noContent: "Bu kategoride henüz içerik bulunmamaktadır.", back: "Geri Dön",
                 viewDetails: "Detayları Gör", comments: "Yorumlar", noComments: "Henüz yorum yok.", writeCommentPlaceholder: "Yorumunuzu buraya yazın...",
                 addComment: "Yorum Ekle", loginToComment: "Yorum eklemek için giriş yapmalısınız.", emailPlaceholder: "E-posta",
-                passwordPlaceholder: "Şifre", adminAccessOnly: "Bu sayfaya sadece Admin erişebilir.", addContent: "Yeni İçerik Ekle",
+                passwordPlaceholder: "Şifre", adminAccessOnly: "Bu sayfaya sadece Admin erişebilir.", 
+                // YENİ: Admin Formu için Çeviriler
+                addContent: "Yeni İçerik Ekle", 
+                addEditContent: "İçeriği Düzenle",
+                cancelEdit: "Düzenlemeyi İptal Et",
+                edit: "Düzenle", 
+                // ---
                 title: "Başlık", contentText: "İçerik Metni", imageBase64: "Görüntü (Base64)", convertImage: "Görseli Dönüştür ve Hazırla",
                 saveContent: "İçeriği Kaydet", loginFailed: "Giriş başarısız:", loginSuccess: "Giriş başarılı!", signingUp: "Kayıt olunuyor...",
                 signUpSuccess: "Kayıt başarılı! Otomatik olarak giriş yapıldı.", delete: "Sil", imageError: "Görsel Yüklenemedi",
                 author: "Yazar", anonymous: "Anonim", loginSignUp: "Giriş / Kayıt", deleteConfirmContent: "Bu içeriği kalıcı olarak silmek istediğinizden emin misiniz?", deleteConfirmComment: "Bu yorumu silmek istediğinizden emin misiniz?",
                 // Admin Status Messages
-                statusSuccessSave: (type) => `${type.toUpperCase()} içeriği başarıyla kaydedildi!`, statusErrorRequired: "Başlık ve İçerik alanları zorunludur.", statusErrorConvert: "Görsel dönüştürme hatası.", statusSuccessConvert: "Görsel Base64 olarak hazırlandı.", statusErrorSize: "Hata: Görsel boyutu 5MB'ı geçmemelidir.", statusConverting: "Görsel dönüştürülüyor...", statusSelectFile: "Lütfen bir dosya seçin.", statusLoggingIn: "Giriş yapılıyor...", statusSigningUp: "Kayıt olunuyor...",
+                statusSuccessSave: (type) => `${type.toUpperCase()} içeriği başarıyla kaydedildi!`, 
+                statusSuccessUpdate: "İçerik başarıyla güncellendi!",
+                statusLoadingEdit: "İçerik düzenleme için yükleniyor...",
+                statusErrorRequired: "Başlık ve İçerik alanları zorunludur.", statusErrorConvert: "Görsel dönüştürme hatası.", statusSuccessConvert: "Görsel Base64 olarak hazırlandı.", statusErrorSize: "Hata: Görsel boyutu 5MB'ı geçmemelidir.", statusConverting: "Görsel dönüştürülüyor...", statusSelectFile: "Lütfen bir dosya seçin.", statusLoggingIn: "Giriş yapılıyor...", statusSigningUp: "Kayıt olunuyor...",
                 modalConfirmTitle: "Eylemi Onayla", modalDeleteTitle: "Silme Onayı", modalOk: "TAMAM", modalCancel: "İptal",
             }
         };
@@ -269,6 +295,13 @@
             } else {
                  document.getElementById('current-category-title').textContent = '';
             }
+
+            // 6. YENİ: Admin Form Başlığını Güncelle
+            const editingPath = document.getElementById('editing-item-path').value;
+            const adminFormTitle = document.getElementById('admin-form-title');
+            if (adminFormTitle) {
+                adminFormTitle.textContent = editingPath ? current.addEditContent : current.addContent;
+            }
         }
 
         function setLanguage(newLang) {
@@ -297,14 +330,15 @@
         };
         const adminEmail = "selimhanlafci121@gmail.com";
         
-        // YENİ: Misafir Hesabı Bilgileri
+        // Misafir Hesabı Bilgileri
         const GUEST_EMAIL = "selimhanlafci008@gmail.com";
         const GUEST_PASSWORD = "selam..lok";
 
 
+        // YENİ: Firebase import'larına get, update eklendi
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getDatabase, ref, onValue, push, serverTimestamp, remove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+        import { getDatabase, ref, onValue, push, serverTimestamp, remove, get, update } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -322,13 +356,6 @@
 
         let resolveModalPromise = null;
 
-        /**
-         * Kullanıcıya özel onay/mesaj kutusu gösterir.
-         * @param {string} title - Modal başlığı
-         * @param {string} body - Modal içeriği
-         * @param {boolean} isConfirm - Onay (true) veya sadece mesaj (false) olup olmadığı
-         * @returns {Promise<boolean>} Sadece isConfirm true ise kullanılır.
-         */
         function showModal(title, body, isConfirm = false) {
             const modal = document.getElementById('custom-modal');
             document.getElementById('modal-title').textContent = title;
@@ -418,7 +445,7 @@
                 // Giriş Yapılmamış Durum
                 authStatusDiv.innerHTML = `
                     <button onclick="showPage('auth')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-full text-sm font-medium transition shadow-md" data-i18n="login">${current.login}</button>
-                    <!-- YENİ MİSAFİR MODU BUTONU -->
+                    <!-- Misafir Modu Butonu -->
                     <button onclick="handleGuestLogin()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-full text-sm font-medium transition shadow-md" data-i18n="guestMode">${current.guestMode}</button>
                 `;
                 commentFormContainer.classList.add('hidden');
@@ -433,7 +460,7 @@
             translateUI();
         }
         
-        // YENİ: Misafir Modu Giriş Fonksiyonu
+        // Misafir Modu Giriş Fonksiyonu
         async function handleGuestLogin() {
             const current = translations[lang];
             const authStatusDiv = document.getElementById('auth-status');
@@ -527,6 +554,8 @@
             }
             
             if (pageId === 'wiki') {
+                // YENİ: Admin panelinden wiki'ye dönerken formu temizle
+                cancelEdit();
                 loadWikiContent(currentCategory);
             } else if (pageId === 'admin') {
                 const current = translations[lang];
@@ -588,6 +617,7 @@
                         ? `<img src="${item.base64Image}" alt="${item.title}" class="w-full h-40 object-cover rounded-lg mb-3" onerror="this.onerror=null; this.src='https://placehold.co/400x160/cbd5e1/475569?text=${current.imageError.replace(/\s/g, '+')}'">`
                         : `<div class="w-full h-40 bg-gray-200 flex items-center justify-center rounded-lg mb-3 text-gray-500">${current.imageError}</div>`;
                     
+                    // YENİ: Admin butonları (Düzenle ve Sil) bir div içine alındı
                     card.innerHTML = `
                         ${imageHtml}
                         <h3 class="text-xl font-bold text-indigo-700">${item.title}</h3>
@@ -595,7 +625,12 @@
                         <p class="text-xs text-gray-400">${current.author}: ${item.author || current.anonymous}</p>
                         <div class="flex justify-between items-center mt-auto pt-3 border-t border-gray-100">
                             <button onclick="showDetail('${item.category}/${item.id}')" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition">${current.viewDetails} (${commentCount})</button>
-                            ${isAdmin ? `<button onclick="confirmDeleteContent('${item.category}/${item.id}')" class="btn-danger text-white px-3 py-1 rounded-lg text-xs hover:shadow-md">${current.delete}</button>` : ''}
+                            <div class="flex space-x-2">
+                                ${isAdmin ? `
+                                    <button onclick="handleEdit('${item.category}/${item.id}')" class="btn-primary text-white px-3 py-1 rounded-lg text-xs hover:shadow-md">${current.edit}</button>
+                                    <button onclick="confirmDeleteContent('${item.category}/${item.id}')" class="btn-danger text-white px-3 py-1 rounded-lg text-xs hover:shadow-md">${current.delete}</button>
+                                ` : ''}
+                            </div>
                         </div>
                     `;
                     listEl.appendChild(card);
@@ -743,8 +778,68 @@
 
 
         // ----------------------------------------------------------------------
-        // 8️⃣ Admin Paneli İşlemleri
+        // 8️⃣ Admin Paneli İşlemleri (YENİ DÜZENLEME FONKSİYONLARI)
         // ----------------------------------------------------------------------
+        
+        // YENİ: Düzenleme için formu doldur
+        async function handleEdit(path) {
+            if (!isAdmin) return;
+            const current = translations[lang];
+            const statusEl = document.getElementById('save-status');
+            statusEl.textContent = current.statusLoadingEdit;
+            statusEl.className = 'text-sm mt-4 font-semibold text-gray-500';
+
+            try {
+                const itemRef = ref(db, path);
+                const snapshot = await get(itemRef);
+                
+                if (!snapshot.exists()) {
+                    showModal("Hata", "Düzenlenecek içerik bulunamadı.", false);
+                    statusEl.textContent = '';
+                    return;
+                }
+                
+                const item = snapshot.val();
+                
+                // Formu doldur
+                document.getElementById('content-title').value = item.title;
+                document.getElementById('content-text').value = item.content;
+                document.getElementById('content-base64-image').value = item.base64Image || '';
+                document.getElementById('content-image-input').value = ''; // Dosya girişini temizle
+                document.getElementById('content-type').value = item.category;
+                document.getElementById('content-type').disabled = true; // Kategori değiştirilemez
+                
+                // Gizli alana düzenlenecek öğenin yolunu kaydet
+                document.getElementById('editing-item-path').value = path; 
+
+                // Admin formu UI'sını "Düzenleme Modu"na geçir
+                document.getElementById('admin-form-title').textContent = current.addEditContent;
+                document.getElementById('cancel-edit-button').classList.remove('hidden');
+                statusEl.textContent = ''; // Yükleniyor... mesajını temizle
+
+                // Admin sayfasına git
+                showPage('admin');
+
+            } catch (error) {
+                console.error("Edit loading error:", error);
+                statusEl.textContent = 'Hata: ' + error.message;
+                statusEl.className = 'text-sm mt-4 font-semibold text-red-600';
+            }
+        }
+
+        // YENİ: Düzenlemeyi iptal et
+        function cancelEdit() {
+            document.getElementById('editing-item-path').value = '';
+            document.getElementById('content-title').value = '';
+            document.getElementById('content-text').value = '';
+            document.getElementById('content-base64-image').value = '';
+            document.getElementById('content-image-input').value = '';
+            document.getElementById('content-type').disabled = false;
+            document.getElementById('admin-form-title').textContent = translations[lang].addContent;
+            document.getElementById('cancel-edit-button').classList.add('hidden');
+            document.getElementById('save-status').textContent = '';
+        }
+
 
         function handleImageUpload() {
             const current = translations[lang];
@@ -782,6 +877,7 @@
             }
         }
 
+        // YENİ: Hem Ekleme hem de Güncelleme yapacak şekilde güncellendi
         async function saveContent() {
             if (!isAdmin) {
                 showModal(translations[lang].modalConfirmTitle, "İçerik kaydetmek için admin yetkisine sahip olmalısınız.", false);
@@ -789,6 +885,8 @@
             }
 
             const current = translations[lang];
+            const editingPath = document.getElementById('editing-item-path').value;
+            
             const type = document.getElementById('content-type').value;
             const title = document.getElementById('content-title').value.trim();
             const content = document.getElementById('content-text').value.trim();
@@ -802,31 +900,55 @@
                 return;
             }
 
-            const newWikiItem = {
-                title: title,
-                content: content,
-                category: type,
-                base64Image: base64Image || null,
-                author: currentUser.email,
-                createdAt: serverTimestamp(),
-                comments: {}
-            };
-
             try {
-                const contentRef = ref(db, type);
-                await push(contentRef, newWikiItem);
-                
-                statusEl.textContent = current.statusSuccessSave(type);
-                statusEl.className = 'text-sm mt-4 font-semibold text-green-600';
-                
-                document.getElementById('content-title').value = '';
-                document.getElementById('content-text').value = '';
-                document.getElementById('content-base64-image').value = '';
-                document.getElementById('content-image-input').value = '';
+                if (editingPath) {
+                    // --- GÜNCELLEME MODU ---
+                    const itemData = {
+                        title: title,
+                        content: content,
+                        category: type, // Kategori (disabled olduğu için değişmez ama yine de ekleyelim)
+                        base64Image: base64Image || null,
+                        author: currentUser.email,
+                        updatedAt: serverTimestamp() // Güncellenme tarihi ekle
+                    };
+                    
+                    const contentRef = ref(db, editingPath);
+                    await update(contentRef, itemData);
+                    
+                    statusEl.textContent = current.statusSuccessUpdate;
+                    statusEl.className = 'text-sm mt-4 font-semibold text-green-600';
+                    
+                    // Formu temizle ve düzenleme modundan çık
+                    cancelEdit();
+                    
+                } else {
+                    // --- YENİ EKLEME MODU ---
+                    const newWikiItem = {
+                        title: title,
+                        content: content,
+                        category: type,
+                        base64Image: base64Image || null,
+                        author: currentUser.email,
+                        createdAt: serverTimestamp(),
+                        comments: {}
+                    };
+
+                    const contentRef = ref(db, type);
+                    await push(contentRef, newWikiItem);
+                    
+                    statusEl.textContent = current.statusSuccessSave(type);
+                    statusEl.className = 'text-sm mt-4 font-semibold text-green-600';
+                    
+                    // Sadece formu temizle
+                    document.getElementById('content-title').value = '';
+                    document.getElementById('content-text').value = '';
+                    document.getElementById('content-base64-image').value = '';
+                    document.getElementById('content-image-input').value = '';
+                }
 
             } catch (error) {
-                console.error("İçerik kaydetme hatası:", error);
-                statusEl.textContent = 'Kaydetme hatası: ' + error.message;
+                console.error("İçerik kaydetme/güncelleme hatası:", error);
+                statusEl.textContent = 'Hata: ' + error.message;
                 statusEl.className = 'text-sm mt-4 font-semibold text-red-600';
             }
         }
@@ -852,7 +974,10 @@
         window.setLanguage = setLanguage;
         window.closeModal = closeModal;
         window.modalCallback = modalCallback;
-        window.handleGuestLogin = handleGuestLogin; // YENİ Misafir Modu fonksiyonunu ekle
+        window.handleGuestLogin = handleGuestLogin;
+        // YENİ: Düzenleme fonksiyonlarını global yap
+        window.handleEdit = handleEdit;
+        window.cancelEdit = cancelEdit;
     </script>
 </body>
 </html>
