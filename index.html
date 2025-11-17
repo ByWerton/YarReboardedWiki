@@ -16,18 +16,8 @@
         .btn-danger { background-color: #ef4444; transition: background-color 0.2s; }
         .btn-danger:hover { background-color: #dc2626; }
         .comment-box { border-left: 3px solid #6366f1; padding-left: 1rem; }
-        /* Sayfa geçişleri için flex/block ayarı */
-        .page-content {
-            display: none;
-        }
-        #page-wiki.page-content,
-        #page-detail.page-content,
-        #page-admin.page-content {
-             display: block; /* İçeriğin düzgün görünmesi için block olarak ayarlanır, JS ile yönetilir. */
-        }
-        #page-auth.page-content {
-            display: flex; /* Giriş sayfasını ortalamak için flex kullanılır, JS ile yönetilir. */
-        }
+        .page-content { display: none; }
+        #page-auth.page-content { display: flex; }
     </style>
     <!-- Firebase SDK'ları -->
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
@@ -64,7 +54,6 @@
                 </div>
 
                 <div id="wiki-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Wiki öğeleri buraya yüklenecek -->
                     <p class="text-center col-span-full text-gray-500">Lütfen bir kategori seçin.</p>
                 </div>
             </section>
@@ -76,14 +65,12 @@
                     Geri Dön
                 </button>
                 <div id="detail-content" class="wiki-card p-6 rounded-xl shadow-lg">
-                    <!-- Detaylı içerik buraya yüklenecek -->
                 </div>
                 
                 <!-- Yorumlar Bölümü -->
                 <div class="mt-8">
                     <h3 class="text-2xl font-semibold mb-4 text-gray-800">Yorumlar</h3>
                     <div id="comments-list" class="space-y-4 mb-6">
-                        <!-- Yorumlar buraya yüklenecek -->
                         <p id="no-comments-message" class="text-gray-500">Henüz yorum yok.</p>
                     </div>
 
@@ -152,7 +139,6 @@
             appId: "1:365304875142:web:5d962e22c249917745a907",
             measurementId: "G-KCDR6CW19E"
         };
-        // Admin hesabı: selimhanlafci121@gmail.com
         const adminEmail = "selimhanlafci121@gmail.com";
 
         // Firebase SDK'larını içe aktarma
@@ -168,33 +154,26 @@
         // Global Durumlar
         let currentUser = null;
         let isAdmin = false;
-        let currentCategory = 'blocks'; // Varsayılan kategori
-        let currentContentPath = null; // Detay sayfası için tam yol (örn: 'blocks/item-id')
+        let currentCategory = 'blocks'; 
+        let currentContentPath = null; // Örn: 'blocks/item-id'
 
         // ----------------------------------------------------------------------
         // 2️⃣ Kimlik Doğrulama (Auth) İşlemleri
         // ----------------------------------------------------------------------
 
-        // Kimlik doğrulama durumunu izleme
         onAuthStateChanged(auth, (user) => {
             currentUser = user;
             isAdmin = user && user.email === adminEmail;
+            console.log(`[AUTH] Kullanıcı durumu değişti. Giriş Yapıldı: ${!!user}, Admin: ${isAdmin}`);
             updateUI();
             
-            // Eğer admin panelindeysek ve admin değilsek, ana sayfaya yönlendir.
-            const isAdminPageActive = document.getElementById('page-admin').classList.contains('flex') || document.getElementById('page-admin').classList.contains('block');
-            if (!isAdmin && isAdminPageActive) {
-                showPage('wiki');
-            }
-
-            // Eğer wiki ana sayfasındaysak içeriği yenile (kullanıcı yetkisine göre düzenleme butonu görünür/gizlenir)
-            const isWikiPageActive = document.getElementById('page-wiki').classList.contains('flex') || document.getElementById('page-wiki').classList.contains('block');
+            // Kullanıcı girişi/çıkışı olduğunda wiki içeriğini yenile
+            const isWikiPageActive = document.getElementById('page-wiki').classList.contains('block');
             if (isWikiPageActive) {
                 loadWikiContent(currentCategory);
             }
         });
 
-        // UI'yı kullanıcı durumuna göre güncelleme
         function updateUI() {
             const authStatusDiv = document.getElementById('auth-status');
             const adminLink = document.getElementById('admin-link');
@@ -202,7 +181,6 @@
             const commentLoginMessage = document.getElementById('comment-login-message');
 
             if (currentUser) {
-                // Giriş Yapılmış Durum
                 authStatusDiv.innerHTML = `
                     <span class="text-sm font-medium text-indigo-200">${currentUser.email}</span>
                     <button onclick="handleSignOut()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-full text-sm font-medium transition">Çıkış Yap</button>
@@ -210,7 +188,6 @@
                 commentFormContainer.classList.remove('hidden');
                 commentLoginMessage.classList.add('hidden');
             } else {
-                // Çıkış Yapılmış Durum
                 authStatusDiv.innerHTML = `
                     <button onclick="showPage('auth')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded-full text-sm font-medium transition">Giriş Yap</button>
                 `;
@@ -218,39 +195,25 @@
                 commentLoginMessage.classList.remove('hidden');
             }
 
-            // Admin Paneli Linkini Yönetme
             if (isAdmin) {
                 adminLink.classList.remove('hidden');
-                document.getElementById('admin-controls').classList.remove('hidden');
-                document.getElementById('admin-message').classList.add('hidden');
             } else {
                 adminLink.classList.add('hidden');
-                // Admin değilse, admin kontrol paneli alanını gizle
-                const adminPage = document.getElementById('page-admin');
-                if (adminPage) {
-                    document.getElementById('admin-controls').classList.add('hidden');
-                    if (adminPage.classList.contains('block')) { // Admin panelindeyken adminlik yetkisi düşerse
-                        document.getElementById('admin-message').classList.remove('hidden');
-                    }
-                }
             }
         }
 
-        // Giriş Yapma İşlemi
         document.getElementById('auth-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
             const messageEl = document.getElementById('auth-message');
-            messageEl.textContent = '';
+            messageEl.textContent = 'Giriş yapılıyor...';
 
             try {
                 await signInWithEmailAndPassword(auth, email, password);
                 messageEl.textContent = 'Giriş başarılı!';
                 messageEl.classList.remove('text-red-500');
                 messageEl.classList.add('text-green-500');
-                
-                // Başarılı girişten sonra bekle ve sayfayı değiştir
                 setTimeout(() => showPage('wiki'), 500); 
             } catch (error) {
                 console.error("Giriş hatası:", error);
@@ -260,20 +223,17 @@
             }
         });
 
-        // Kayıt Olma İşlemi
         async function handleSignUp() {
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
             const messageEl = document.getElementById('auth-message');
-            messageEl.textContent = '';
+            messageEl.textContent = 'Kayıt olunuyor...';
 
             try {
                 await createUserWithEmailAndPassword(auth, email, password);
                 messageEl.textContent = 'Kayıt başarılı! Otomatik olarak giriş yapıldı.';
                 messageEl.classList.remove('text-red-500');
                 messageEl.classList.add('text-green-500');
-
-                // Başarılı kayıttan sonra bekle ve sayfayı değiştir
                 setTimeout(() => showPage('wiki'), 500);
             } catch (error) {
                 console.error("Kayıt hatası:", error);
@@ -283,54 +243,40 @@
             }
         }
 
-        // Çıkış Yapma İşlemi
         function handleSignOut() {
-            signOut(auth).then(() => {
-                // Çıkış başarılı
-                showPage('wiki');
-            }).catch((error) => {
+            signOut(auth).catch((error) => {
                 console.error("Çıkış hatası:", error);
             });
         }
-
 
         // ----------------------------------------------------------------------
         // 3️⃣ Sayfa ve Navigasyon İşlemleri
         // ----------------------------------------------------------------------
 
-        // Sayfa değiştirme fonksiyonu
         function showPage(pageId) {
             document.querySelectorAll('.page-content').forEach(page => {
                 page.classList.add('hidden');
-                page.classList.remove('flex', 'block'); // Tüm gösterim sınıflarını kaldır
+                page.classList.remove('flex', 'block');
             });
 
             const targetPage = document.getElementById(`page-${pageId}`);
             if (targetPage) {
+                targetPage.classList.remove('hidden');
                 if (pageId === 'auth') {
                     targetPage.classList.add('flex', 'flex-col', 'items-center', 'justify-center');
-                    targetPage.classList.remove('hidden');
-                } else if (pageId === 'admin') {
-                    // Admin sayfası için admin yetkisi kontrolü
-                    if (isAdmin) {
-                        targetPage.classList.add('block');
-                        document.getElementById('admin-controls').classList.remove('hidden');
-                        document.getElementById('admin-message').classList.add('hidden');
-                    } else {
-                        targetPage.classList.add('block'); // Yine de blok olarak göster ki mesaj görünebilsin
-                        document.getElementById('admin-message').classList.remove('hidden');
-                        document.getElementById('admin-controls').classList.add('hidden');
-                    }
-                    targetPage.classList.remove('hidden');
                 } else {
                      targetPage.classList.add('block');
-                     targetPage.classList.remove('hidden');
                 }
             }
             
-            // Ana sayfaya dönünce içeriği yeniden yükle
             if (pageId === 'wiki') {
                 loadWikiContent(currentCategory);
+            } else if (pageId === 'admin' && isAdmin) {
+                document.getElementById('admin-controls').classList.remove('hidden');
+                document.getElementById('admin-message').classList.add('hidden');
+            } else if (pageId === 'admin' && !isAdmin) {
+                document.getElementById('admin-message').classList.remove('hidden');
+                document.getElementById('admin-controls').classList.add('hidden');
             }
         }
 
@@ -339,15 +285,14 @@
         // 4️⃣ Wiki İçerik Görüntüleme ve Yorum İşlemleri
         // ----------------------------------------------------------------------
 
-        // Kategoriye göre içerik listesini Realtime DB'den yükleme
         function loadWikiContent(category) {
             currentCategory = category;
             const listEl = document.getElementById('wiki-list');
             listEl.innerHTML = '<p class="text-center col-span-full text-gray-500">İçerikler yükleniyor...</p>';
 
-            // Kategori butonlarını işaretleme
             document.querySelectorAll('#wiki-category-selector button').forEach(btn => {
-                if (btn.textContent.toLowerCase() === category) {
+                const btnText = btn.textContent.toLowerCase();
+                if (btnText === category) {
                     btn.classList.add('bg-indigo-600');
                     btn.classList.remove('btn-primary');
                 } else {
@@ -359,18 +304,15 @@
 
             const contentRef = ref(db, category);
 
-            // Veri değişimini anlık olarak dinleme
-            // *Bu dinleyiciyi kapatmıyoruz, sürekli güncel kalmasını sağlıyoruz*
             onValue(contentRef, (snapshot) => {
                 const data = snapshot.val();
-                listEl.innerHTML = ''; // Listeyi temizle
+                listEl.innerHTML = ''; 
 
                 if (!data) {
                     listEl.innerHTML = '<p class="text-center col-span-full text-gray-500">Bu kategoride henüz içerik bulunmamaktadır.</p>';
                     return;
                 }
 
-                // Veriyi listeye dönüştürme ve tersine çevirme (en yeni en üstte)
                 const items = Object.keys(data).map(key => ({ id: key, category: category, ...data[key] })).reverse();
 
                 items.forEach(item => {
@@ -398,9 +340,11 @@
             });
         }
 
-        // İçerik Detayını Görüntüleme
+        // İçerik Detayını Görüntüleme ve Yolu Kaydetme
         function showDetail(path) {
-            currentContentPath = path;
+            currentContentPath = path; // <<-- YOLU BURADA KAYDEDİYORUZ
+            console.log(`[DETAIL] İçerik yolu ayarlandı: ${currentContentPath}`);
+
             showPage('detail');
             const [category, id] = path.split('/');
             const detailEl = document.getElementById('detail-content');
@@ -420,7 +364,6 @@
                     ? `<img src="${item.base64Image}" alt="${item.title}" class="w-full max-h-96 object-contain rounded-xl shadow-inner mb-6" onerror="this.onerror=null; this.src='https://placehold.co/800x384/cbd5e1/475569?text=Görsel+Yüklenemedi'">`
                     : `<div class="w-full h-48 bg-gray-200 flex items-center justify-center rounded-xl mb-6 text-gray-500 text-lg">Görsel Yok</div>`;
 
-                // Metin alanını new line karakterlerini koruyarak göstermek için stil kullanılır.
                 detailEl.innerHTML = `
                     <h2 class="text-4xl font-extrabold text-indigo-800 mb-4">${item.title}</h2>
                     <p class="text-sm text-gray-500 mb-6 border-b pb-4">Kategori: ${category.charAt(0).toUpperCase() + category.slice(1)} | Yazar: ${item.author || 'Anonim'}</p>
@@ -432,7 +375,6 @@
             });
         }
 
-        // Yorumları Görüntüleme
         function renderComments(comments) {
             const commentsListEl = document.getElementById('comments-list');
             commentsListEl.innerHTML = '';
@@ -459,24 +401,27 @@
             });
         }
 
-        // Yorum Ekleme
+        // Yorum Ekleme - Hata ayıklama logları eklendi
         async function addComment() {
-            if (!currentUser) {
-                // UI zaten bunu göstermeli, ek bir kontrol
-                return;
-            }
-
             const commentTextEl = document.getElementById('comment-text');
             const commentText = commentTextEl.value.trim();
 
+            console.log(`[COMMENT DEBUG] currentUser: ${!!currentUser}`);
+            console.log(`[COMMENT DEBUG] currentContentPath: ${currentContentPath}`);
+            console.log(`[COMMENT DEBUG] Yorum metni dolu mu: ${!!commentText}`);
+
+            if (!currentUser) {
+                console.error('HATA: Yorum eklemek için giriş yapmalısınız. Lütfen Giriş Yap butonunu kullanın.');
+                return;
+            }
+
             if (!commentText) {
-                // Özel bir modal/mesaj kutusu kullanın (alert kullanmayın)
-                console.warn('Yorum metni boş olamaz.');
+                console.error('HATA: Yorum metni boş olamaz.');
                 return;
             }
 
             if (!currentContentPath) {
-                console.error("Yorum eklenecek içerik yolu belirlenmedi.");
+                console.error("HATA: Yorum eklenecek içerik yolu (currentContentPath) belirlenmedi. Lütfen önce bir wiki detay sayfasını açtığınızdan emin olun.");
                 return;
             }
 
@@ -487,59 +432,53 @@
             };
 
             try {
-                // Yorumları ilgili içeriğin altına ekleme
                 const commentsRef = ref(db, `${currentContentPath}/comments`);
                 await push(commentsRef, newComment);
-                commentTextEl.value = ''; // Alanı temizle
+                commentTextEl.value = ''; 
+                console.log('Başarılı: Yorum Realtime Database\'e kaydedildi.');
             } catch (error) {
-                console.error("Yorum ekleme hatası:", error);
-                // Kullanıcıya hata mesajı göstermek için özel bir UI kullanın
+                console.error("Yorum ekleme Firebase hatası (Güvenlik Kuralı İhlali OLABİLİR!):", error.message);
             }
         }
 
-        // Admin: İçerik veya Yorum Silme
+        // Admin: İçerik veya Yorum Silme (alert/confirm kaldırıldı)
         async function deleteContent(path) {
-            if (!isAdmin) return;
-
-            // TODO: Özel modal ile onay alın (alert kullanmayın)
-            if (!confirm('Bu içeriği kalıcı olarak silmek istediğinizden emin misiniz?')) return; 
-
+            if (!isAdmin) {
+                console.error('YETKİSİZ İŞLEM: İçerik silmek için admin yetkisine sahip olmalısınız.');
+                return;
+            }
+            if (!window.confirm('Bu içeriği kalıcı olarak silmek istediğinizden emin misiniz?')) return;
             try {
                 await remove(ref(db, path));
-                // Başarılı mesajı gösterimi için özel UI kullanın
-                console.log('İçerik başarıyla silindi:', path);
-                // onValue dinleyicisi otomatik olarak UI'yı güncelleyecektir.
+                console.log('Başarılı: İçerik silindi.');
             } catch (error) {
                 console.error("İçerik silme hatası:", error);
-                // Kullanıcıya hata mesajı göstermek için özel bir UI kullanın
             }
         }
 
         async function deleteComment(commentId) {
-            if (!isAdmin) return;
+            if (!isAdmin) {
+                 console.error('YETKİSİZ İŞLEM: Yorum silmek için admin yetkisine sahip olmalısınız.');
+                 return;
+            }
             if (!currentContentPath) return;
 
-            // TODO: Özel modal ile onay alın (alert kullanmayın)
-            if (!confirm('Bu yorumu silmek istediğinizden emin misiniz?')) return;
+            if (!window.confirm('Bu yorumu silmek istediğinizden emin misiniz?')) return;
 
             try {
                 const commentPath = `${currentContentPath}/comments/${commentId}`;
                 await remove(ref(db, commentPath));
-                // Başarılı mesajı gösterimi için özel UI kullanın
-                console.log('Yorum başarıyla silindi:', commentPath);
-                // onValue dinleyicisi otomatik olarak UI'yı güncelleyecektir.
+                console.log('Başarılı: Yorum silindi.');
             } catch (error) {
                 console.error("Yorum silme hatası:", error);
-                // Kullanıcıya hata mesajı göstermek için özel bir UI kullanın
             }
         }
 
 
         // ----------------------------------------------------------------------
-        // 5️⃣ Admin Paneli İşlemleri (İçerik Ekleme)
+        // 5️⃣ Admin Paneli İşlemleri
         // ----------------------------------------------------------------------
 
-        // Görseli Base64'e dönüştürme
         function handleImageUpload() {
             const file = document.getElementById('content-image-input').files[0];
             const base64Input = document.getElementById('content-base64-image');
@@ -547,8 +486,7 @@
             statusEl.textContent = 'Görsel dönüştürülüyor...';
 
             if (file) {
-                // Dosya boyut kontrolü (opsiyonel ama iyi bir uygulama)
-                if (file.size > 1024 * 1024 * 5) { // 5MB'den büyükse reddet
+                if (file.size > 1024 * 1024 * 5) { 
                     statusEl.textContent = 'Hata: Görsel boyutu 5MB\'ı geçmemelidir.';
                     statusEl.classList.remove('text-green-600');
                     statusEl.classList.add('text-red-600');
@@ -578,10 +516,9 @@
             }
         }
 
-        // Yeni İçerik Kaydetme
         async function saveContent() {
             if (!isAdmin) {
-                console.error('Bu işlemi yapmaya yetkiniz yok.');
+                console.error('YETKİSİZ İŞLEM: İçerik kaydetmek için admin yetkisine sahip olmalısınız.');
                 return;
             }
 
@@ -606,7 +543,7 @@
                 base64Image: base64Image || null,
                 author: currentUser.email,
                 createdAt: serverTimestamp(),
-                comments: {} // Başlangıçta boş yorumlar nesnesi
+                comments: {}
             };
 
             try {
@@ -617,7 +554,6 @@
                 statusEl.classList.remove('text-red-600');
                 statusEl.classList.add('text-green-600');
                 
-                // Formu temizle
                 document.getElementById('content-title').value = '';
                 document.getElementById('content-text').value = '';
                 document.getElementById('content-base64-image').value = '';
@@ -631,13 +567,11 @@
             }
         }
 
-        // Uygulama yüklendiğinde varsayılan sayfayı göster
         window.onload = () => {
-            // onAuthStateChanged tetiklenmeden önce ilk sayfayı göster (auth durumu belirlenirken)
             showPage('wiki'); 
         };
 
-        // Global fonksiyonları window'a ekleme (HTML event handler'lar için gerekli)
+        // Global fonksiyonları window'a ekleme
         window.showPage = showPage;
         window.loadWikiContent = loadWikiContent;
         window.showDetail = showDetail;
@@ -648,7 +582,6 @@
         window.handleSignOut = handleSignOut;
         window.handleImageUpload = handleImageUpload;
         window.saveContent = saveContent;
-
     </script>
 </body>
 </html>
