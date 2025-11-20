@@ -28,11 +28,19 @@
         /* Admin İçerik Formu Stil Ayarı */
         #admin-controls input[type="text"], #admin-controls textarea, #admin-controls select { border-radius: 0.5rem; border-color: #d1d5db; }
         
-        /* YENİ: Profil Fotoğrafı Stili */
+        /* Profil Fotoğrafı Stili */
         .profile-pic { width: 32px; height: 32px; border-radius: 9999px; object-fit: cover; border: 2px solid white; cursor: pointer; transition: transform 0.2s; }
         .profile-pic:hover { transform: scale(1.1); }
         .profile-initials { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background-color: #a78bfa; color: white; font-weight: 700; font-size: 0.875rem; cursor: pointer; transition: transform 0.2s; }
         .profile-initials:hover { transform: scale(1.1); }
+
+        /* YENİ: Tier 6 Gökkuşağı Metin Stili */
+        .tier-6-text {
+            background-image: linear-gradient(to right, #ef4444, #f59e0b, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 900;
+        }
     </style>
     <!-- Firebase SDK'ları -->
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
@@ -53,7 +61,7 @@
         </div>
     </div>
     
-    <!-- 2️⃣ YENİ: Profil Düzenleme Modal'ı -->
+    <!-- 2️⃣ Profil Düzenleme Modal'ı -->
     <div id="profile-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-40 hidden items-center justify-center p-4" onclick="closeProfileModal(event)">
         <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md transform transition-all" onclick="event.stopPropagation()">
             <h3 class="text-2xl font-bold mb-6 text-gray-800" data-i18n="profileEditTitle">Profili Düzenle</h3>
@@ -202,6 +210,18 @@
                                 <option value="cargoes" data-i18n="cargoes">Kargo</option>
                                 <option value="maps" data-i18n="maps">Harita</option>
                             </select>
+                            
+                            <!-- YENİ: Tier Seçimi -->
+                            <select id="content-tier" class="w-full p-3 border rounded-lg shadow-sm">
+                                <option value="" disabled selected data-i18n="selectTier">Kademe Seç</option>
+                                <option value="1">1 (Kırmızı)</option>
+                                <option value="2">2 (Turuncu)</option>
+                                <option value="3">3 (Sarı)</option>
+                                <option value="4">4 (Mavi)</option>
+                                <option value="5">5 (Mor)</option>
+                                <option value="6">6 (Gökkuşağı)</option>
+                            </select>
+                            
                             <input type="text" id="content-title" data-i18n-placeholder="title" placeholder="Başlık" required class="w-full p-3 border rounded-lg shadow-sm">
                             
                             <!-- İçerik Metni -->
@@ -267,6 +287,8 @@
                 statusImageSuccess: "Image ready (Base64).",
                 statusImageError: "Image conversion error.",
                 statusImageSizeError: "Error: Image size must not exceed 5MB.",
+                // YENİ: Tier Çevirisi
+                selectTier: "Select Tier",
                 // ---
                 // Admin Status Messages
                 statusSuccessSave: (type) => `${type.toUpperCase()} content successfully saved!`, 
@@ -307,6 +329,8 @@
                 statusImageSuccess: "Görsel hazır (Base64).",
                 statusImageError: "Görsel dönüştürme hatası.",
                 statusImageSizeError: "Hata: Görsel boyutu 5MB'ı geçmemelidir.",
+                // YENİ: Tier Çevirisi
+                selectTier: "Kademe Seç",
                 // ---
                 // Admin Status Messages
                 statusSuccessSave: (type) => `${type.toUpperCase()} içeriği başarıyla kaydedildi!`, 
@@ -344,6 +368,14 @@
                     option.textContent = current[key];
                 }
             });
+            // YENİ: Tier Seçici Başlığını Güncelle
+            const tierSelector = document.getElementById('content-tier');
+            if (tierSelector) {
+                 const selectedOption = tierSelector.querySelector('option[disabled][selected]');
+                 if (selectedOption) {
+                    selectedOption.textContent = current.selectTier;
+                 }
+            }
             
             // 4. Modal
             document.getElementById('modal-cancel').textContent = current.modalCancel;
@@ -412,10 +444,10 @@
         let currentContentPath = null; 
         let allDataCache = {}; // Arama ve filtreleme için veri önbelleği
         
-        // YENİ: Profil önbelleği ve varsayılan resim
+        // Profil önbelleği ve varsayılan resim
         let currentUserProfile = { username: '', photo: '' };
         const USER_PROFILES_PATH = 'userProfiles'; // Profil veritabanı yolu
-        const DEFAULT_PROFILE_PIC = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI0E3OEJGQSI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMTguNzUgMTkuMTI1Yy0xLjU5MyAwLTIuOTEyLjM2My00LjE3OC45ODItMS4yNjYtLjYyLTIuNTg1LS45ODItNC4xNzgtLjk4Mi0yLjg4NSAwLTUuNDExIDEuMjQ1LTcuMTg4IDMuMTI5QTEuMTI1IDEuMTI1IDAgMCAwIDMuMTggMjQuMzc1YzEuODE4IDMuMTQ2IDUuNTE1IDUuMzQ0IDkuNTQ2IDUuMzQ0czcuNzI4LTIuMTk4IDkuNTQ2LTUuMzQ0YTEuMTI1IDEuMTI1IDAgMCAwLS4yNjQtMS4xMjFjLTEuNzc3LTEuODg0LTQuMzAzLTMuMTI5LTcuMTg4LTMuMTI5Wk0xMiAxMi43NWMzLjQ1IDEgMCA2LjI1LTIuNzkxIDYuMjUtNi4yNXMtMi43OTEtNi4yNS02LjI1LTZLjI1LTYuMjUgMi43OTEtNi4yNSA2LjI1IDEgMy40NSAxIDYuMjUgMS43MDkgMy40NSAzLjkyMiAyLjc5MSA2LjI1LTYuMjVWMjAuNTA3Yy41NTMtLjA3OCAxLjExLS4xNDIgMS42NzgtLjE5NGExMC4yMDcgMTAuMjA3IDAgMCAxIDQuOTkgMEMxMy43MDkgMTYuMjAyIDEyIDE0LjQ5IDEyIDEyLjc1WiIgY2xpcC1ydWxlPSJldmVub2RkIiAvPjwvc3ZnPg==";
+        const DEFAULT_PROFILE_PIC = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI0E3OEJGQSI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMTguNzUgMTkuMTI1Yy0xLjU5MyAwLTIuOTEyLjM2My00LjE3OC45ODItMS4yNjYtLjYyLTIuNTg1LS45ODItNC4xNzgtLjk4Mi0yLjg4NSAwLTUuNDExIDEuMjQ1LTcuMTg4IDMuMTI5QTEuMTI1IDEuMTI1IDAgMCAwIDMuMTggMjQuMzc1YzEuODE4IDMuMTQ2IDUuNTE1IDUuMzQ0IDkuNTQ2IDUuMzQ0czcuNzI4LTIuMTk4IDkuNTQ2LTUuMzQ0YTEuMTI1IDEuMTI1IDAgMCAwLS4yNjQtMS4xMjFjLTEuNzc3LTEuODg0LTQuMzAzLTMuMTI5LTcuMTg4LTMuMTI5Wk0xMiAxMi43NWMzLjQ1IDEgMCA2LjI1LTIuNzkxIDYuMjUtNi4yNXMtMi43OTEtNi4yNS02LjI1LTZLjI1LTYuMjUgMi43OTEtNi4yNSA2LjI1IDEgMy40NSAxIDYuMjUgMS43MDkgMy40NSAzLjkyMiAyLjc5MSA2LjI1LTYuMjVWMjAuNTA3Yy41NTMtLjA3OCAxLjExLS4xNDIgMS42NzgtLjE5NGExMC4yMDcgMTAuMjA3IDAgMCAxIDQuOTkgMEMxMy43MDkgMTYyMDIgMTIgMTQuNDkgMTIgMTIuNzVaIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIC8+PC9zdmc+";
 
 
         // ----------------------------------------------------------------------
@@ -532,7 +564,7 @@
                 const userName = currentUserProfile.username || currentUser.email.split('@')[0];
                 const photoBase64 = currentUserProfile.photo;
                 
-                // YENİ: Profil Fotoğrafı veya Baş Harf
+                // Profil Fotoğrafı veya Baş Harf
                 let profileElement;
                 if (photoBase64) {
                     profileElement = `<img src="${photoBase64}" alt="Profil" class="profile-pic" onclick="openProfileModal()" title="Profili Düzenle">`;
@@ -676,7 +708,24 @@
 
 
         // ----------------------------------------------------------------------
-        // 7️⃣ Wiki İçerik Görüntüleme ve Yorum İşlemleri
+        // 7️⃣ Tier Renk Yardımcı Fonksiyonu
+        // ----------------------------------------------------------------------
+
+        function getTierColorClass(tier) {
+            const t = parseInt(tier, 10);
+            switch (t) {
+                case 1: return { border: 'border-red-500', text: 'text-red-600' };
+                case 2: return { border: 'border-orange-500', text: 'text-orange-600' };
+                case 3: return { border: 'border-yellow-500', text: 'text-yellow-600' };
+                case 4: return { border: 'border-blue-500', text: 'text-blue-600' };
+                case 5: return { border: 'border-purple-500', text: 'text-purple-600' };
+                case 6: return { border: 'border-transparent', text: 'tier-6-text' }; 
+                default: return { border: 'border-gray-300', text: 'text-gray-500' };
+            }
+        }
+
+        // ----------------------------------------------------------------------
+        // 8️⃣ Wiki İçerik Görüntüleme ve Yorum İşlemleri
         // ----------------------------------------------------------------------
 
         function loadWikiContent(category) {
@@ -749,10 +798,22 @@
                     ? `<img src="${item.base64Image}" alt="${item.title}" class="w-full h-40 object-cover rounded-lg mb-3" onerror="this.onerror=null; this.src='https://placehold.co/400x160/cbd5e1/475569?text=${current.imageError.replace(/\s/g, '+')}'">`
                     : `<div class="w-full h-40 bg-gray-200 flex items-center justify-center rounded-lg mb-3 text-gray-500">${current.imageError}</div>`;
                 
-                // YENİ: item.authorName kullanıldı
+                // YENİ: Tier Ekranı
+                const tierData = item.tier ? getTierColorClass(item.tier) : null;
+                const tierHtml = tierData ? `
+                    <span class="text-sm font-bold px-2 py-0.5 border-2 rounded-full 
+                        ${tierData.border} ${tierData.text}"
+                    >
+                        Tier ${item.tier}
+                    </span>` : '';
+
+
                 card.innerHTML = `
                     ${imageHtml}
-                    <h3 class="text-xl font-bold text-indigo-700">${item.title}</h3>
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xl font-bold text-indigo-700">${item.title}</h3>
+                        ${tierHtml}
+                    </div>
                     <p class="text-gray-600 line-clamp-3 text-sm">${(item.content || '').substring(0, 100)}...</p>
                     <p class="text-xs text-gray-400">${current.author}: ${item.authorName || item.author || current.anonymous}</p>
                     <div class="flex justify-between items-center mt-auto pt-3 border-t border-gray-100">
@@ -774,7 +835,7 @@
             renderWikiList();
         }
 
-        // YENİ: item.authorName kullanıldı
+        // YENİ: item.authorName kullanıldı ve Tier eklendi
         function showDetail(path) {
             currentContentPath = path; 
             showPage('detail');
@@ -794,10 +855,23 @@
                 const imageHtml = item.base64Image 
                     ? `<img src="${item.base64Image}" alt="${item.title}" class="w-full max-h-96 object-contain rounded-xl shadow-inner mb-6" onerror="this.onerror=null; this.src='https://placehold.co/800x384/cbd5e1/475569?text=${current.imageError.replace(/\s/g, '+')}'">`
                     : `<div class="w-full h-48 bg-gray-200 flex items-center justify-center rounded-xl mb-6 text-gray-500 text-lg">${current.imageError}</div>`;
+                
+                // YENİ: Tier Ekranı Detay
+                const tierData = item.tier ? getTierColorClass(item.tier) : null;
+                const tierHtml = tierData ? `
+                    <span class="text-lg font-extrabold px-3 py-1 border-4 rounded-full 
+                        ${tierData.border} ${tierData.text}"
+                    >
+                        Tier ${item.tier}
+                    </span>` : '';
+
 
                 detailEl.innerHTML = `
-                    <h2 class="text-4xl font-extrabold text-indigo-800 mb-4">${item.title}</h2>
-                    <p class="text-sm text-gray-500 mb-6 border-b pb-4">${current.author}: <span class="font-semibold">${item.authorName || item.author || current.anonymous}</span></p>
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-4xl font-extrabold text-indigo-800 mb-0">${item.title}</h2>
+                        ${tierHtml}
+                    </div>
+                    <p class="text-sm text-gray-500 mb-6 border-b pb-4 mt-2">${current.author}: <span class="font-semibold">${item.authorName || item.author || current.anonymous}</span></p>
                     ${imageHtml}
                     <div class="prose max-w-none text-gray-700 leading-relaxed whitespace-pre-wrap">${item.content}</div>
                 `;
@@ -869,22 +943,132 @@
             }
         }
 
-        // Silme İşlemleri için Onay Modalları
-        async function confirmDeleteContent(path) { /* ... (Değişmedi) ... */ }
-        async function deleteContent(path) { /* ... (Değişmedi) ... */ }
-        async function confirmDeleteComment(commentId) { /* ... (Değişmedi) ... */ }
-        async function deleteComment(commentId) { /* ... (Değişmedi) ... */ }
+        // Silme İşlemleri için Onay Modalları (Değişmedi, kısaltılabilir ama güvenlik için kalsın)
+        async function confirmDeleteContent(path) {
+            const current = translations[lang];
+            const confirmed = await showModal(current.modalDeleteTitle, current.deleteConfirmContent, true);
+            if (confirmed) {
+                deleteContent(path);
+            }
+        }
+
+        async function deleteContent(path) {
+            try {
+                const itemRef = ref(db, path);
+                await remove(itemRef);
+                loadWikiContent(path.split('/')[0]); 
+            } catch (error) {
+                console.error("İçerik silme hatası:", error);
+                showModal("Hata", "İçerik silinirken bir hata oluştu: " + error.message, false);
+            }
+        }
+
+        async function confirmDeleteComment(commentId) {
+            const current = translations[lang];
+            const confirmed = await showModal(current.modalDeleteTitle, current.deleteConfirmComment, true);
+            if (confirmed) {
+                deleteComment(commentId);
+            }
+        }
+
+        async function deleteComment(commentId) {
+            if (!currentContentPath) return;
+            try {
+                const commentRef = ref(db, `${currentContentPath}/comments/${commentId}`);
+                await remove(commentRef);
+            } catch (error) {
+                console.error("Yorum silme hatası:", error);
+                showModal("Hata", "Yorum silinirken bir hata oluştu: " + error.message, false);
+            }
+        }
 
 
         // ----------------------------------------------------------------------
-        // 8️⃣ Admin Paneli İşlemleri (YENİ `authorName` eklendi)
+        // 9️⃣ Admin Paneli İşlemleri (YENİ `tier` eklendi)
         // ----------------------------------------------------------------------
         
-        async function handleEdit(path) { /* ... (Değişmedi) ... */ }
-        function cancelEdit() { /* ... (Değişmedi) ... */ }
-        function handleImageUpload() { /* ... (Değişmedi) ... */ }
+        async function handleEdit(path) {
+            const current = translations[lang];
+            showPage('admin');
+            
+            document.getElementById('save-status').textContent = current.statusLoadingEdit;
+            document.getElementById('save-status').className = 'text-sm mt-4 font-semibold text-gray-600';
 
-        // YENİ: authorName eklendi
+            try {
+                const itemRef = ref(db, path);
+                const snapshot = await get(itemRef);
+                const item = snapshot.val();
+
+                if (item) {
+                    document.getElementById('editing-item-path').value = path;
+                    document.getElementById('content-type').value = item.category;
+                    document.getElementById('content-title').value = item.title;
+                    document.getElementById('content-text').value = item.content;
+                    document.getElementById('content-base64-image').value = item.base64Image || '';
+                    document.getElementById('content-tier').value = item.tier || ''; // YENİ: Tier değerini yükle
+                    document.getElementById('cancel-edit-button').classList.remove('hidden');
+                    document.getElementById('save-status').textContent = ''; 
+                    
+                    translateUI(); // Başlığı "Düzenle" olarak güncelle
+                } else {
+                    document.getElementById('save-status').textContent = current.contentNotFound;
+                    document.getElementById('save-status').className = 'text-sm mt-4 font-semibold text-red-600';
+                }
+            } catch (error) {
+                console.error("Düzenleme içeriği yükleme hatası:", error);
+                document.getElementById('save-status').textContent = 'Hata: ' + error.message;
+                document.getElementById('save-status').className = 'text-sm mt-4 font-semibold text-red-600';
+            }
+        }
+        
+        function cancelEdit() {
+            document.getElementById('editing-item-path').value = '';
+            document.getElementById('content-type').value = 'blocks';
+            document.getElementById('content-tier').value = ''; // YENİ: Tier'ı sıfırla
+            document.getElementById('content-title').value = '';
+            document.getElementById('content-text').value = '';
+            document.getElementById('content-base64-image').value = '';
+            document.getElementById('content-image-input').value = '';
+            document.getElementById('save-status').textContent = '';
+            document.getElementById('cancel-edit-button').classList.add('hidden');
+            translateUI(); // Başlığı "Ekle" olarak güncelle
+        }
+        
+        function handleImageUpload() {
+            const current = translations[lang];
+            const file = document.getElementById('content-image-input').files[0];
+            const base64Input = document.getElementById('content-base64-image');
+            const statusEl = document.getElementById('save-status');
+            statusEl.textContent = current.statusConverting;
+            statusEl.className = 'text-sm mt-4 font-semibold text-gray-600';
+
+            if (!file) {
+                statusEl.textContent = current.statusSelectFile;
+                statusEl.className = 'text-sm mt-4 font-semibold text-red-600';
+                return;
+            }
+            if (file.size > 1024 * 1024 * 5) { // 5MB limit
+                statusEl.textContent = current.statusErrorSize;
+                statusEl.className = 'text-sm mt-4 font-semibold text-red-600';
+                base64Input.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                base64Input.value = e.target.result;
+                statusEl.textContent = current.statusSuccessConvert;
+                statusEl.className = 'text-sm mt-4 font-semibold text-green-600';
+            };
+            reader.onerror = function() {
+                base64Input.value = '';
+                statusEl.textContent = current.statusErrorConvert;
+                statusEl.className = 'text-sm mt-4 font-semibold text-red-600';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // YENİ: tier eklendi
         async function saveContent() {
             if (!isAdmin) {
                 showModal(translations[lang].modalConfirmTitle, "İçerik kaydetmek için admin yetkisine sahip olmalısınız.", false);
@@ -898,6 +1082,7 @@
             const title = document.getElementById('content-title').value.trim();
             const content = document.getElementById('content-text').value.trim();
             const base64Image = document.getElementById('content-base64-image').value;
+            const tier = document.getElementById('content-tier').value; // YENİ: Tier değerini al
             const statusEl = document.getElementById('save-status');
             statusEl.textContent = '';
 
@@ -917,6 +1102,7 @@
                         content: content,
                         category: type, 
                         base64Image: base64Image || null,
+                        tier: tier || null, // YENİ: Tier'ı kaydet
                         authorName: authorName, 
                         authorEmail: currentUser.email, 
                         updatedAt: serverTimestamp() 
@@ -935,6 +1121,7 @@
                         content: content,
                         category: type,
                         base64Image: base64Image || null,
+                        tier: tier || null, // YENİ: Tier'ı kaydet
                         authorName: authorName, 
                         authorEmail: currentUser.email, 
                         createdAt: serverTimestamp(),
@@ -950,6 +1137,7 @@
                     document.getElementById('content-text').value = '';
                     document.getElementById('content-base64-image').value = '';
                     document.getElementById('content-image-input').value = '';
+                    document.getElementById('content-tier').value = ''; // YENİ: Tier'ı sıfırla
                 }
 
             } catch (error) {
@@ -960,7 +1148,7 @@
         }
         
         // ----------------------------------------------------------------------
-        // 9️⃣ YENİ: Profil Modal İşlevleri
+        // 10️⃣ Profil Modal İşlevleri
         // ----------------------------------------------------------------------
         
         function openProfileModal() {
@@ -1066,7 +1254,7 @@
 
 
         // ----------------------------------------------------------------------
-        // 10️⃣ Başlangıç
+        // 11️⃣ Başlangıç
         // ----------------------------------------------------------------------
         window.onload = () => {
             const initialLang = 'tr'; 
@@ -1094,7 +1282,7 @@
         window.cancelEdit = cancelEdit;
         window.handleSearch = handleSearch;
         
-        // YENİ: Profil fonksiyonlarını global yap
+        // Profil fonksiyonlarını global yap
         window.openProfileModal = openProfileModal;
         window.closeProfileModal = closeProfileModal;
         window.handleProfileImageUpload = handleProfileImageUpload;
@@ -1102,5 +1290,4 @@
     </script>
 </body>
 </html>
-
 
